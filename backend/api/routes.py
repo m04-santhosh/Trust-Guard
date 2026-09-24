@@ -21,7 +21,7 @@ from backend.modules.risk_scorer import score_risk
 from backend.modules.confidence_autopsy import update_cross_modal_validation
 from backend.modules.case_file_generator import generate_case_file, export_case_file_json
 from backend.storage.database import save_case, get_case, list_cases, update_case_status, delete_case
-from backend.storage.decision_log import log_decision
+from backend.storage.decision_log import log_decision, get_decisions
 from backend.utils.helpers import UPLOAD_DIR, FRAMES_DIR, ensure_dir, get_timestamp, generate_media_id
 
 router = APIRouter()
@@ -323,6 +323,55 @@ async def stream_media_file(media_id: str):
         ".png": "image/png",
     }
     return FileResponse(target_file, media_type=content_types.get(ext, "application/octet-stream"))
+
+
+@router.get("/audit/{case_id}")
+async def get_audit_trail(case_id: str):
+    """
+    Retrieve the full forensic audit trail for a case.
+    Returns: case metadata, SHA-256 hash, decision history, and evidence chain summary.
+    Demonstrates enterprise-grade evidence provenance and chain-of-custody.
+    """
+    case = get_case(case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
+    
+    decisions = get_decisions(case_id)
+    media_summary = case.get("media_summary", {})
+    evidence = case.get("evidence", [])
+    
+    evidence_chain = []
+    for ev in evidence:
+        if ev.get("available"):
+            evidence_chain.append({
+                "modality": ev.get("modality"),
+                "source": ev.get("source"),
+                "band": ev.get("band"),
+                "detector_name": ev.get("autopsy", {}).get("detector_name"),
+                "signal_strength": ev.get("autopsy", {}).get("signal_strength"),
+                "detector_reliability": ev.get("autopsy", {}).get("detector_reliability"),
+            })
+    
+    return {
+        "case_id": case_id,
+        "timestamp": case.get("timestamp"),
+        "status": case.get("status"),
+        "media_provenance": {
+            "filename": media_summary.get("filename"),
+            "type": media_summary.get("type"),
+            "sha256": media_summary.get("sha256"),
+            "duration": media_summary.get("duration"),
+            "resolution": media_summary.get("resolution"),
+        },
+        "evidence_chain": evidence_chain,
+        "disagreement": {
+            "detected": case.get("disagreement", {}).get("disagreement_detected", False),
+            "divergence_score": case.get("disagreement", {}).get("details", {}).get("divergence_score"),
+        },
+        "risk_classification": case.get("risk", {}).get("risk_level"),
+        "decision_history": decisions,
+        "total_decisions": len(decisions),
+    }
 
 
 def _generate_html_report(case: dict) -> str:
