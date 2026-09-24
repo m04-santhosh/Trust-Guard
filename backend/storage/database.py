@@ -87,12 +87,45 @@ def init_db():
             token TEXT UNIQUE NOT NULL,
             expires_at TEXT NOT NULL,
             used INTEGER NOT NULL DEFAULT 0,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            reset_ticket TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_resets_token ON password_resets(token)")
     
+    # Safe migration for existing password_resets table
+    cursor = conn.execute("PRAGMA table_info(password_resets)")
+    reset_cols = [row["name"] for row in cursor.fetchall()]
+    if "attempts" not in reset_cols:
+        conn.execute("ALTER TABLE password_resets ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0")
+    if "reset_ticket" not in reset_cols:
+        conn.execute("ALTER TABLE password_resets ADD COLUMN reset_ticket TEXT")
+    
+    # Safe migration for existing users table: add is_verified column if missing
+    cursor = conn.execute("PRAGMA table_info(users)")
+    user_cols = [row["name"] for row in cursor.fetchall()]
+    if "is_verified" not in user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN is_verified INTEGER NOT NULL DEFAULT 1")
+
+    # 6. Email registration verification OTP table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS email_verifications (
+            verification_id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            email TEXT NOT NULL,
+            otp_hash TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            used INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_verifications_email ON email_verifications(email)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_verifications_user_id ON email_verifications(user_id)")
+
     conn.commit()
     conn.close()
 
@@ -101,17 +134,36 @@ def init_db():
 # User & Session Management
 # -----------------------------------------------------------------------------
 
-def create_user(email: str, username: str, password_hash: str) -> dict:
-    """Create a new user account with hashed password."""
+def create_user(email: str, username: str, password_hash: str, is_verified: int = 0) -> dict:
+    """Create a new user account with hashed password and verification state."""
     user_id = f"usr_{uuid.uuid4().hex[:12]}"
     conn = get_connection()
     conn.execute(
-        "INSERT INTO users (user_id, email, username, password_hash) VALUES (?, ?, ?, ?)",
-        (user_id, email.strip().lower(), username.strip(), password_hash),
+        "INSERT INTO users (user_id, email, username, password_hash, is_verified) VALUES (?, ?, ?, ?, ?)",
+        (user_id, email.strip().lower(), username.strip(), password_hash, is_verified),
     )
     conn.commit()
     conn.close()
-    return {"user_id": user_id, "email": email.strip().lower(), "username": username.strip()}
+    return {"user_id": user_id, "email": email.strip().lower(), "username": username.strip(), "is_verified": is_verified}
+
+
+def update_pending_user(user_id: str, username: str, password_hash: str):
+    """Update credentials for an unverified pending account."""
+    conn = get_connection()
+    conn.execute(
+        "UPDATE users SET username = ?, password_hash = ? WHERE user_id = ? AND is_verified = 0",
+        (username.strip(), password_hash, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def verify_user_account(user_id: str):
+    """Mark user account as verified/active."""
+    conn = get_connection()
+    conn.execute("UPDATE users SET is_verified = 1 WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
 
 
 def get_user_by_identifier(identifier: str) -> Optional[dict]:
@@ -119,7 +171,7 @@ def get_user_by_identifier(identifier: str) -> Optional[dict]:
     clean_id = identifier.strip().lower()
     conn = get_connection()
     row = conn.execute(
-        "SELECT user_id, email, username, password_hash, created_at FROM users WHERE lower(email) = ? OR lower(username) = ?",
+        "SELECT user_id, email, username, password_hash, is_verified, created_at FROM users WHERE lower(email) = ? OR lower(username) = ?",
         (clean_id, clean_id),
     ).fetchone()
     conn.close()
@@ -132,13 +184,37 @@ def get_user_by_id(user_id: str) -> Optional[dict]:
     """Look up user by user_id."""
     conn = get_connection()
     row = conn.execute(
-        "SELECT user_id, email, username, created_at FROM users WHERE user_id = ?",
+        "SELECT user_id, email, username, password_hash, is_verified, created_at FROM users WHERE user_id = ?",
         (user_id,),
     ).fetchone()
     conn.close()
     if row:
         return dict(row)
     return None
+
+
+def get_user_by_email(email: str) -> Optional[dict]:
+    """Look up user strictly by email."""
+    clean_email = email.strip().lower()
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT user_id, email, username, password_hash, is_verified, created_at FROM users WHERE lower(email) = ?",
+        (clean_email,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_user_by_username(username: str) -> Optional[dict]:
+    """Look up user strictly by username."""
+    clean_uname = username.strip().lower()
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT user_id, email, username, password_hash, is_verified, created_at FROM users WHERE lower(username) = ?",
+        (clean_uname,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
 
 
 def create_session(user_id: str, token: str, expires_at: str) -> dict:
@@ -179,8 +255,16 @@ def delete_session(token: str) -> bool:
 
 
 def create_password_reset(user_id: str, token: str, expires_at: str) -> dict:
-    """Record a password recovery token."""
+    """
+    Record a password recovery token.
+    Invalidates any prior unused tokens for this user to enforce single-use policy.
+    """
     conn = get_connection()
+    # Invalidate any previously issued, unconsumed reset tokens for this user
+    conn.execute(
+        "UPDATE password_resets SET used = 1 WHERE user_id = ? AND used = 0",
+        (user_id,),
+    )
     reset_id = f"rst_{uuid.uuid4().hex[:12]}"
     conn.execute(
         "INSERT INTO password_resets (reset_id, user_id, token, expires_at, used) VALUES (?, ?, ?, ?, 0)",
@@ -192,7 +276,7 @@ def create_password_reset(user_id: str, token: str, expires_at: str) -> dict:
 
 
 def get_password_reset(token: str) -> Optional[dict]:
-    """Retrieve an unused, unexpired password recovery token."""
+    """Retrieve an unused, unexpired password recovery token (token holds hashed OTP)."""
     conn = get_connection()
     row = conn.execute(
         "SELECT * FROM password_resets WHERE token = ? AND used = 0 AND datetime('now') < datetime(expires_at)",
@@ -202,19 +286,173 @@ def get_password_reset(token: str) -> Optional[dict]:
     return dict(row) if row else None
 
 
-def mark_password_reset_used(token: str):
-    """Mark recovery token as consumed."""
+def get_latest_active_reset_for_user(user_id: str) -> Optional[dict]:
+    """Retrieve the most recent unexpired, unused reset record for a user."""
     conn = get_connection()
-    conn.execute("UPDATE password_resets SET used = 1 WHERE token = ?", (token,))
+    row = conn.execute(
+        """
+        SELECT * FROM password_resets 
+        WHERE user_id = ? AND used = 0 AND datetime('now') < datetime(expires_at)
+        ORDER BY created_at DESC LIMIT 1
+        """,
+        (user_id,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_latest_reset_for_user(user_id: str) -> Optional[dict]:
+    """Retrieve the most recent reset record for a user regardless of used status (for cooldown check)."""
+    conn = get_connection()
+    row = conn.execute(
+        """
+        SELECT * FROM password_resets 
+        WHERE user_id = ?
+        ORDER BY created_at DESC LIMIT 1
+        """,
+        (user_id,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def increment_reset_attempts(reset_id: str) -> int:
+    """
+    Increment failed attempt count for an OTP reset record.
+    If attempts >= 5, lock/invalidate the reset record.
+    Returns the new attempt count.
+    """
+    conn = get_connection()
+    conn.execute("UPDATE password_resets SET attempts = attempts + 1 WHERE reset_id = ?", (reset_id,))
+    row = conn.execute("SELECT attempts FROM password_resets WHERE reset_id = ?", (reset_id,)).fetchone()
+    new_attempts = row["attempts"] if row else 5
+    if new_attempts >= 5:
+        conn.execute("UPDATE password_resets SET used = 1 WHERE reset_id = ?", (reset_id,))
+    conn.commit()
+    conn.close()
+    return new_attempts
+
+
+def set_reset_ticket(reset_id: str, ticket_hash: str):
+    """Store the authorized reset ticket hash for an OTP-verified session."""
+    conn = get_connection()
+    conn.execute(
+        "UPDATE password_resets SET reset_ticket = ? WHERE reset_id = ?",
+        (ticket_hash, reset_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_password_reset_by_ticket(ticket_hash: str) -> Optional[dict]:
+    """Retrieve an unexpired, unused reset record by ticket hash."""
+    conn = get_connection()
+    row = conn.execute(
+        """
+        SELECT * FROM password_resets 
+        WHERE reset_ticket = ? AND used = 0 AND datetime('now') < datetime(expires_at)
+        """,
+        (ticket_hash,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def mark_password_reset_used(token_or_id: str):
+    """Mark recovery token or reset_id as consumed."""
+    conn = get_connection()
+    conn.execute("UPDATE password_resets SET used = 1 WHERE token = ? OR reset_id = ? OR reset_ticket = ?", (token_or_id, token_or_id, token_or_id))
     conn.commit()
     conn.close()
 
 
 def update_user_password(user_id: str, new_password_hash: str):
-    """Update user's password hash and revoke active sessions for security."""
+    """Update user's password hash, revoke active sessions, and invalidate all reset tokens."""
     conn = get_connection()
     conn.execute("UPDATE users SET password_hash = ? WHERE user_id = ?", (new_password_hash, user_id))
     conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+    conn.execute("UPDATE password_resets SET used = 1 WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+
+# -----------------------------------------------------------------------------
+# Registration Email Verification (OTP)
+# -----------------------------------------------------------------------------
+
+def create_email_verification(user_id: str, email: str, otp_hash: str, expires_at: str) -> str:
+    """Record a hashed registration OTP and invalidate any previous active ones for this user/email."""
+    verification_id = f"vry_{uuid.uuid4().hex[:12]}"
+    conn = get_connection()
+    clean_email = email.strip().lower()
+    conn.execute(
+        "UPDATE email_verifications SET used = 1 WHERE (user_id = ? OR lower(email) = ?) AND used = 0",
+        (user_id, clean_email),
+    )
+    conn.execute(
+        """
+        INSERT INTO email_verifications (verification_id, user_id, email, otp_hash, expires_at, attempts, used)
+        VALUES (?, ?, ?, ?, ?, 0, 0)
+        """,
+        (verification_id, user_id, clean_email, otp_hash, expires_at),
+    )
+    conn.commit()
+    conn.close()
+    return verification_id
+
+
+def get_latest_active_verification(email: str) -> Optional[dict]:
+    """Retrieve the most recent unexpired, unused registration verification record for an email."""
+    clean_email = email.strip().lower()
+    conn = get_connection()
+    row = conn.execute(
+        """
+        SELECT * FROM email_verifications
+        WHERE lower(email) = ? AND used = 0 AND datetime('now') < datetime(expires_at)
+        ORDER BY created_at DESC LIMIT 1
+        """,
+        (clean_email,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_latest_verification_for_email(email: str) -> Optional[dict]:
+    """Retrieve the most recent verification record regardless of status (for cooldown check)."""
+    clean_email = email.strip().lower()
+    conn = get_connection()
+    row = conn.execute(
+        """
+        SELECT * FROM email_verifications
+        WHERE lower(email) = ?
+        ORDER BY created_at DESC LIMIT 1
+        """,
+        (clean_email,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def increment_verification_attempts(verification_id: str) -> int:
+    """
+    Increment failed attempt count for a registration verification record.
+    If attempts >= 5, lock/invalidate the record.
+    """
+    conn = get_connection()
+    conn.execute("UPDATE email_verifications SET attempts = attempts + 1 WHERE verification_id = ?", (verification_id,))
+    row = conn.execute("SELECT attempts FROM email_verifications WHERE verification_id = ?", (verification_id,)).fetchone()
+    new_attempts = row["attempts"] if row else 5
+    if new_attempts >= 5:
+        conn.execute("UPDATE email_verifications SET used = 1 WHERE verification_id = ?", (verification_id,))
+    conn.commit()
+    conn.close()
+    return new_attempts
+
+
+def mark_verification_used(verification_id: str):
+    """Mark registration verification record as consumed."""
+    conn = get_connection()
+    conn.execute("UPDATE email_verifications SET used = 1 WHERE verification_id = ?", (verification_id,))
     conn.commit()
     conn.close()
 

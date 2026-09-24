@@ -23,6 +23,8 @@ import {
   X,
 } from 'lucide-react';
 import { listMyCases, deleteCase } from '../utils/api';
+
+const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
 import { useAuth } from '../context/AuthContext';
 
 export default function MyReportsPage({ onSelectCase, onNewAnalysis, onOpenAuth, onBack }) {
@@ -694,7 +696,7 @@ export default function MyReportsPage({ onSelectCase, onNewAnalysis, onOpenAuth,
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.open(`http://localhost:8000/export/${c.case_id}?format=html`, '_blank');
+                      window.open(`${API_BASE}/export/${c.case_id}?format=html`, '_blank');
                     }}
                     title="Open Official Risk Certificate in new window"
                     style={{

@@ -2,7 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env?.VITE_API_URL ||
+  (typeof window !== 'undefined' && window.location.hostname
+    ? `http://${window.location.hostname}:8000`
+    : 'http://127.0.0.1:8000');
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -87,10 +90,12 @@ export function AuthProvider({ children }) {
     }
 
     const data = await res.json();
-    sessionStorage.setItem('tg_session_token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-    return data.user;
+    if (data.token) {
+      sessionStorage.setItem('tg_session_token', data.token);
+      setToken(data.token);
+      setUser(data.user);
+    }
+    return data;
   };
 
   const logout = async () => {
@@ -104,6 +109,13 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('tg_token');
     setToken(null);
     setUser(null);
+  };
+
+  const updateSessionToken = (newToken) => {
+    if (newToken) {
+      sessionStorage.setItem('tg_session_token', newToken);
+      setToken(newToken);
+    }
   };
 
   const authFetch = (url, options = {}) => {
@@ -124,6 +136,7 @@ export function AuthProvider({ children }) {
         login,
         signup,
         logout,
+        updateSessionToken,
         authFetch,
       }}
     >

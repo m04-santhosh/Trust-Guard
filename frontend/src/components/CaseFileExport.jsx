@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Download, Printer, Copy, Check, FileJson, FileText, ExternalLink } from 'lucide-react';
+import { Download, Printer, Copy, Check, FileJson, FileText, ExternalLink, Award } from 'lucide-react';
 import { exportCaseFile } from '../utils/api';
+
+const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
 
 export default function CaseFileExport({ caseFile }) {
   const [copied, setCopied] = useState(false);
@@ -30,7 +32,7 @@ export default function CaseFileExport({ caseFile }) {
   };
 
   const handleOpenReport = () => {
-    window.open(`http://localhost:8000/export/${encodeURIComponent(caseFile.case_id)}?format=html`, '_blank');
+    window.open(`${API_BASE}/export/${encodeURIComponent(caseFile.case_id)}?format=html`, '_blank');
   };
 
   const handleCopyJson = () => {

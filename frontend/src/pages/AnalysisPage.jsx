@@ -43,9 +43,10 @@ export default function AnalysisPage({ caseFile: initialCaseFile, onBack }) {
     return Image;
   };
 
+  const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
   const MediaIcon = getMediaIcon(media_summary?.type);
   const mediaStreamUrl = media_summary?.media_id
-    ? `http://localhost:8000/media/${encodeURIComponent(media_summary.media_id)}/file`
+    ? `${API_BASE}/media/${encodeURIComponent(media_summary.media_id)}/file`
     : null;
 
   return (

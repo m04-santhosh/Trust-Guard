@@ -16,9 +16,10 @@ import {
   Save,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { changePassword } from '../utils/api';
 
 export default function UserSettingsModal({ isOpen, onClose }) {
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, updateSessionToken } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
 
   // Change Password state
@@ -43,8 +44,16 @@ export default function UserSettingsModal({ isOpen, onClose }) {
     setPasswordMsg(null);
     setPasswordErr(null);
 
-    if (newPassword.length < 6) {
-      setPasswordErr('New password must be at least 6 characters.');
+    if (!oldPassword) {
+      setPasswordErr('Current password is required.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordErr('New password must be at least 8 characters.');
+      return;
+    }
+    if (!/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>?]/.test(newPassword)) {
+      setPasswordErr('New password must contain at least one number or special character.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -54,9 +63,11 @@ export default function UserSettingsModal({ isOpen, onClose }) {
 
     setSavingPassword(true);
     try {
-      // In this prototype, we update credentials safely
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setPasswordMsg('Security credentials updated successfully.');
+      const res = await changePassword(oldPassword, newPassword, token);
+      if (res.token && updateSessionToken) {
+        updateSessionToken(res.token);
+      }
+      setPasswordMsg(res.message || 'Security credentials updated successfully.');
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');

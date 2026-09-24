@@ -15,3 +15,10 @@ class ReviewRequest(BaseModel):
 class HealthResponse(BaseModel):
     """Health check response."""
     status: str = "ok"
+
+
+class ChangePasswordRequest(BaseModel):
+    """Request body for authenticated password change."""
+    current_password: str
+    new_password: str
+

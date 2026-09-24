@@ -40,10 +40,40 @@ def test_full_pipeline():
         "password": "Password_Alice_987#",
     })
     assert res_a.status_code == 200, f"Alice signup failed: {res_a.text}"
-    alice_data = res_a.json()
+    assert res_a.json().get("requires_verification") is True
+
+    # Verify unverified login is blocked
+    res_login_blocked = client.post("/auth/login", json={
+        "username_or_email": "alice.eval@trustguard.ai",
+        "password": "Password_Alice_987#",
+    })
+    assert res_login_blocked.status_code == 403, "Unverified user must be blocked from logging in"
+
+    # Resolve Alice OTP from hash in database
+    conn = get_connection()
+    v_a = conn.execute("SELECT otp_hash FROM email_verifications WHERE email = ? ORDER BY created_at DESC LIMIT 1", ("alice.eval@trustguard.ai",)).fetchone()
+    conn.close()
+    assert v_a is not None
+    import hashlib
+    alice_otp = next(f"{i:06d}" for i in range(1000000) if hashlib.sha256(f"{i:06d}".encode()).hexdigest() == v_a["otp_hash"])
+
+    # Verify Alice OTP
+    res_v_a = client.post("/auth/verify-signup-otp", json={
+        "email": "alice.eval@trustguard.ai",
+        "otp": alice_otp,
+    })
+    assert res_v_a.status_code == 200, f"Alice OTP verify failed: {res_v_a.text}"
+
+    # Now login Alice
+    res_login_a = client.post("/auth/login", json={
+        "username_or_email": "alice.eval@trustguard.ai",
+        "password": "Password_Alice_987#",
+    })
+    assert res_login_a.status_code == 200, f"Alice login failed: {res_login_a.text}"
+    alice_data = res_login_a.json()
     alice_token = alice_data["token"]
     alice_user = alice_data["user"]
-    print(f" -> Alice Registered: UserID={alice_user['user_id']}, Username=@{alice_user['username']}")
+    print(f" -> Alice Registered & Verified: UserID={alice_user['user_id']}, Username=@{alice_user['username']}")
     print(f" -> Session Token Issued: {alice_token[:16]}... (32-byte urlsafe)")
 
     # 2. Signup Bob
@@ -54,10 +84,32 @@ def test_full_pipeline():
         "password": "Password_Bob_654!",
     })
     assert res_b.status_code == 200, f"Bob signup failed: {res_b.text}"
-    bob_data = res_b.json()
+    assert res_b.json().get("requires_verification") is True
+
+    # Resolve Bob OTP from hash in database
+    conn = get_connection()
+    v_b = conn.execute("SELECT otp_hash FROM email_verifications WHERE email = ? ORDER BY created_at DESC LIMIT 1", ("bob.eval@trustguard.ai",)).fetchone()
+    conn.close()
+    assert v_b is not None
+    bob_otp = next(f"{i:06d}" for i in range(1000000) if hashlib.sha256(f"{i:06d}".encode()).hexdigest() == v_b["otp_hash"])
+
+    # Verify Bob OTP
+    res_v_b = client.post("/auth/verify-signup-otp", json={
+        "email": "bob.eval@trustguard.ai",
+        "otp": bob_otp,
+    })
+    assert res_v_b.status_code == 200, f"Bob OTP verify failed: {res_v_b.text}"
+
+    # Now login Bob
+    res_login_b = client.post("/auth/login", json={
+        "username_or_email": "bob.eval@trustguard.ai",
+        "password": "Password_Bob_654!",
+    })
+    assert res_login_b.status_code == 200, f"Bob login failed: {res_login_b.text}"
+    bob_data = res_login_b.json()
     bob_token = bob_data["token"]
     bob_user = bob_data["user"]
-    print(f" -> Bob Registered: UserID={bob_user['user_id']}, Username=@{bob_user['username']}")
+    print(f" -> Bob Registered & Verified: UserID={bob_user['user_id']}, Username=@{bob_user['username']}")
     print(f" -> Session Token Issued: {bob_token[:16]}... (32-byte urlsafe)")
 
     # 3. Verify SQLite DB Storage & Hash Format (Plaintext must NEVER exist)

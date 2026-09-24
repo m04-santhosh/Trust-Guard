@@ -2,7 +2,10 @@
  * API utility — fetch wrapper for TrustGuard backend.
  */
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env?.VITE_API_URL ||
+  (typeof window !== 'undefined' && window.location.hostname
+    ? `http://${window.location.hostname}:8000`
+    : 'http://127.0.0.1:8000');
 
 /**
  * Upload a media file for analysis.
@@ -78,34 +81,55 @@ export async function listMyCases(token, status = null, limit = 50) {
 }
 
 /**
- * List all cases.
+ * List cases for the authenticated user.
  */
-export async function listCases(status = null, limit = 50) {
+export async function listCases(token = null, status = null, limit = 50) {
   const params = new URLSearchParams();
   if (status) params.set('status', status);
   params.set('limit', String(limit));
 
-  const res = await fetch(`${API_BASE}/cases?${params}`);
-  if (!res.ok) throw new Error('Failed to fetch cases');
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}/cases?${params}`, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to fetch cases' }));
+    throw new Error(err.detail || 'Failed to fetch cases');
+  }
   return res.json();
 }
 
 /**
- * Get a single case by ID.
+ * Get a single case by ID with authentication.
  */
-export async function getCase(caseId) {
-  const res = await fetch(`${API_BASE}/cases/${encodeURIComponent(caseId)}`);
-  if (!res.ok) throw new Error(`Case ${caseId} not found`);
+export async function getCase(caseId, token = null) {
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}/cases/${encodeURIComponent(caseId)}`, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: `Case ${caseId} not found` }));
+    throw new Error(err.detail || `Case ${caseId} not found`);
+  }
   return res.json();
 }
 
 /**
  * Submit a reviewer decision.
  */
-export async function submitReview(caseId, action, notes = null, reviewerId = 'analyst') {
+export async function submitReview(caseId, action, notes = null, reviewerId = 'analyst', token = null) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE}/cases/${encodeURIComponent(caseId)}/review`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
       action,
       reviewer_id: reviewerId,
@@ -137,7 +161,70 @@ export async function exportCaseFile(caseId) {
 }
 
 /**
- * Request password recovery code via SMTP.
+ * Register a new user account (initiates 6-digit OTP verification via SMTP).
+ */
+export async function registerUser(email, username, password) {
+  const res = await fetch(`${API_BASE}/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: email.trim(),
+      username: username.trim(),
+      password,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Registration failed' }));
+    throw new Error(err.detail || 'Registration failed');
+  }
+
+  return res.json();
+}
+
+/**
+ * Verify 6-digit registration OTP code to activate account.
+ */
+export async function verifySignupOtp(email, otp) {
+  const res = await fetch(`${API_BASE}/auth/verify-signup-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: email.trim(),
+      otp: otp.trim(),
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Invalid or expired verification code.' }));
+    throw new Error(err.detail || 'Invalid or expired verification code.');
+  }
+
+  return res.json();
+}
+
+/**
+ * Resend 6-digit registration OTP code.
+ */
+export async function resendSignupOtp(email) {
+  const res = await fetch(`${API_BASE}/auth/resend-signup-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: email.trim(),
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to resend verification code' }));
+    throw new Error(err.detail || 'Failed to resend verification code');
+  }
+
+  return res.json();
+}
+
+/**
+ * Request password recovery email with 6-digit OTP via SMTP.
  */
 export async function requestPasswordReset(email) {
   const res = await fetch(`${API_BASE}/auth/forgot-password`, {
@@ -147,29 +234,97 @@ export async function requestPasswordReset(email) {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: 'Failed to request recovery code' }));
-    throw new Error(err.detail || 'Failed to request recovery code');
+    const err = await res.json().catch(() => ({ detail: 'Failed to request verification code' }));
+    throw new Error(err.detail || 'Failed to request verification code');
   }
 
   return res.json();
 }
 
 /**
- * Confirm password recovery code and update password.
+ * Verify 6-digit OTP code against server.
  */
-export async function confirmPasswordReset(token, newPassword) {
-  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+export async function verifyResetOtp(email, otp) {
+  const res = await fetch(`${API_BASE}/auth/verify-reset-otp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      token: token.trim(),
-      new_password: newPassword,
+      email: email.trim(),
+      otp: otp.trim(),
     }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Invalid or expired verification code.' }));
+    throw new Error(err.detail || 'Invalid or expired verification code.');
+  }
+
+  return res.json();
+}
+
+/**
+ * Validate that a legacy reset token exists and is valid.
+ */
+export async function verifyResetToken(token) {
+  const res = await fetch(`${API_BASE}/auth/verify-reset-token?token=${encodeURIComponent(token.trim())}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Invalid or expired recovery link' }));
+    throw new Error(err.detail || 'Invalid or expired recovery link');
+  }
+  return res.json();
+}
+
+/**
+ * Confirm password reset and set new password using authorized reset ticket.
+ */
+export async function confirmPasswordReset(tokenOrPayload, newPassword) {
+  let bodyPayload = {};
+  if (typeof tokenOrPayload === 'object' && tokenOrPayload !== null) {
+    bodyPayload = { ...tokenOrPayload };
+  } else {
+    bodyPayload = {
+      reset_token: tokenOrPayload ? tokenOrPayload.trim() : undefined,
+      new_password: newPassword,
+    };
+  }
+
+  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bodyPayload),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Password reset failed' }));
     throw new Error(err.detail || 'Password reset failed');
+  }
+
+  return res.json();
+}
+
+/**
+ * Authenticated password update.
+ */
+export async function changePassword(currentPassword, newPassword, token) {
+  if (!token) {
+    throw new Error('Authentication required to change password.');
+  }
+
+  const res = await fetch(`${API_BASE}/auth/change-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Password change failed' }));
+    throw new Error(err.detail || 'Password change failed');
   }
 
   return res.json();
@@ -196,3 +351,4 @@ export async function deleteCase(caseId, token = null) {
 
   return res.json();
 }
+

@@ -22,6 +22,8 @@ import {
 import { listCases, deleteCase } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
+const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+
 export default function HistoryPage({ onSelectCase, onNewAnalysis, onBack }) {
   const { token } = useAuth();
   const [cases, setCases] = useState([]);
@@ -57,7 +59,7 @@ export default function HistoryPage({ onSelectCase, onNewAnalysis, onBack }) {
     setError(null);
     try {
       // Fetch all cases once so filter tabs switch instantaneously in-memory
-      const data = await listCases(null);
+      const data = await listCases(token, null);
       setCases(data || []);
     } catch (err) {
       setError(err.message || 'Failed to load case history');
@@ -512,7 +514,7 @@ export default function HistoryPage({ onSelectCase, onNewAnalysis, onBack }) {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.open(`http://localhost:8000/export/${c.case_id}?format=html`, '_blank');
+                      window.open(`${API_BASE}/export/${c.case_id}?format=html`, '_blank');
                     }}
                     title="Open Official Risk Certificate in new window"
                     style={{

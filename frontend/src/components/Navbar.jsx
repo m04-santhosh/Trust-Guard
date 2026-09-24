@@ -33,7 +33,8 @@ export default function Navbar({ activeTab, onTabChange }) {
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:8000/health')
+    const apiBase = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+    fetch(`${apiBase}/health`)
       .then((res) => {
         if (res.ok) setBackendStatus('online');
         else setBackendStatus('offline');

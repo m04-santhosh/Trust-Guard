@@ -48,6 +48,8 @@ const RISK_CONFIG = {
   },
 };
 
+const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+
 export default function RiskCertificate({ risk, confidenceSummary, caseId }) {
   if (!risk) return null;
 
@@ -57,7 +59,7 @@ export default function RiskCertificate({ risk, confidenceSummary, caseId }) {
 
   const handleOpenCertificate = () => {
     if (caseId) {
-      window.open(`http://localhost:8000/export/${encodeURIComponent(caseId)}?format=html`, '_blank');
+      window.open(`${API_BASE}/export/${encodeURIComponent(caseId)}?format=html`, '_blank');
     }
   };
 

@@ -51,7 +51,8 @@ async def analyze_media(
     user_scope = user_id or "public"
     upload_id = generate_media_id()
     upload_dir = ensure_dir(os.path.join(UPLOAD_DIR, user_scope, upload_id))
-    upload_path = os.path.join(upload_dir, file.filename or "upload")
+    safe_filename = os.path.basename(file.filename or "upload")
+    upload_path = os.path.join(upload_dir, safe_filename)
     
     try:
         with open(upload_path, "wb") as f:
@@ -182,30 +183,61 @@ async def get_my_cases(
 
 @router.get("/cases")
 async def get_cases(
+    user: dict = Depends(get_current_user_required),
     status: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
 ):
-    """List all cases with optional status filter."""
-    cases = list_cases(status=status, limit=limit, offset=offset)
+    """
+    List case files with strict user isolation.
+    Requires authentication; only returns the authenticated user's cases.
+    """
+    cases = list_cases(user_id=user["user_id"], status=status, limit=limit, offset=offset)
     return cases
 
 
 @router.get("/cases/{case_id}")
-async def get_case_by_id(case_id: str):
-    """Get a single case file by ID."""
+async def get_case_by_id(
+    case_id: str,
+    user: dict = Depends(get_current_user_required),
+):
+    """
+    Get a single case file by ID.
+    Enforces authentication and case ownership.
+    """
     case = get_case(case_id)
     if not case:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
+
+    case_user_id = case.get("user_id")
+    if case_user_id and case_user_id != user["user_id"]:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to view this case dossier.",
+        )
     return case
 
 
 @router.post("/cases/{case_id}/review")
-async def review_case(case_id: str, review: ReviewRequest):
-    """Submit a reviewer decision for a case."""
+async def review_case(
+    case_id: str,
+    review: ReviewRequest,
+    user: dict = Depends(get_current_user_required),
+):
+    """
+    Submit a reviewer decision for a case.
+    Requires authentication and verifies case ownership.
+    """
     case = get_case(case_id)
     if not case:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
+
+    case_user_id = case.get("user_id")
+    if case_user_id and case_user_id != user["user_id"]:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to review this case dossier.",
+        )
     
     # Validate action
     valid_actions = {"confirmed_threat", "cleared", "overridden"}
@@ -215,18 +247,20 @@ async def review_case(case_id: str, review: ReviewRequest):
             detail=f"Invalid action '{review.action}'. Must be one of: {valid_actions}",
         )
     
+    reviewer_id = review.reviewer_id or user.get("username", "analyst")
+    
     # Log the decision
     decision = log_decision(
         case_id=case_id,
         action=review.action,
-        reviewer_id=review.reviewer_id,
+        reviewer_id=reviewer_id,
         notes=review.notes,
     )
     
     # Update case status
     reviewer_decision = {
         "action": review.action,
-        "reviewer_id": review.reviewer_id,
+        "reviewer_id": reviewer_id,
         "notes": review.notes,
         "decided_at": decision["decided_at"],
     }
@@ -238,19 +272,18 @@ async def review_case(case_id: str, review: ReviewRequest):
 @router.delete("/cases/{case_id}")
 async def remove_case(
     case_id: str,
-    authorization: Optional[str] = Header(None),
+    user: dict = Depends(get_current_user_required),
 ):
     """
     Delete a case dossier from SQLite and local storage.
-    Enforces ownership check if user session header is provided.
+    Strictly requires authentication and verifies case ownership.
     """
     case = get_case(case_id)
     if not case:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
         
-    current_user = get_current_user_optional(authorization)
     case_user_id = case.get("user_id")
-    if case_user_id and current_user and current_user["user_id"] != case_user_id:
+    if case_user_id and case_user_id != user["user_id"]:
         raise HTTPException(
             status_code=403,
             detail="You do not have permission to delete this case dossier.",
@@ -296,16 +329,17 @@ async def export_case(case_id: str, format: str = "json"):
 @router.get("/media/{media_id}/file")
 async def stream_media_file(media_id: str):
     """Stream uploaded media file directly for video/audio player."""
+    safe_media_id = os.path.basename(media_id)
     target_file = None
     for root, dirs, files in os.walk(UPLOAD_DIR):
-        if os.path.basename(root) == media_id and files:
+        if os.path.basename(root) == safe_media_id and files:
             target_file = os.path.join(root, files[0])
             break
             
     if not target_file or not os.path.exists(target_file):
         # Fallback check demo samples
         samples_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "demo", "samples")
-        demo_candidate = os.path.join(samples_dir, media_id)
+        demo_candidate = os.path.join(samples_dir, safe_media_id)
         if os.path.exists(demo_candidate):
             target_file = demo_candidate
         else:

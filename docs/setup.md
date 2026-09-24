@@ -62,7 +62,34 @@ Open your browser to: `http://127.0.0.1:5173`
 
 ---
 
-## 4. Testing Demo Scenarios
+## 4. SMTP Email & Password Recovery Setup
+
+TrustGuard provides a production-grade password recovery flow using cryptographically secure, single-use reset tokens with a 15-minute expiration window.
+
+To enable live email delivery:
+1. Copy `.env.example` to `.env` in the project root:
+   ```bash
+   cp .env.example .env
+   ```
+2. Configure your SMTP provider credentials in `.env`:
+   ```ini
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USERNAME=your_email@gmail.com
+   SMTP_PASSWORD=your_16_character_app_password
+   SMTP_FROM_EMAIL=your_email@gmail.com
+   SMTP_FROM_NAME=TrustGuard Security
+   SMTP_USE_TLS=true
+   FRONTEND_BASE_URL=http://localhost:5173
+   VITE_API_URL=http://localhost:8000
+   ```
+   > **Note on Gmail:** Always generate and use a Google App Password (requires 2-Step Verification) rather than your personal password.
+
+If SMTP credentials are not configured, password reset requests will still safely succeed with a generic message to prevent account enumeration, while logging safe diagnostic hints on the server without leaking tokens.
+
+---
+
+## 5. Testing Demo Scenarios
 
 Pre-generated demo media assets are available in `demo/samples/`:
 - `clean_broadcast_frame.jpg` & `clean_speech.wav`: Baseline authentic broadcast
