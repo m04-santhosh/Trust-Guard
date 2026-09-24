@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EE692E"/>
+      <stop offset="100%" stop-color="#D8571F"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer Shield Shell (Orange) -->
+  <path d="M32 4L10 12V28C10 44 19.5 54.5 32 60C44.5 54.5 54 44 54 28V12L32 4Z" 
+        fill="url(#shieldGrad)" />
+  
+  <!-- Inner Shield Core (White) -->
+  <path d="M32 10L16 16.2V28C16 40.5 22.8 48.5 32 53.5C41.2 48.5 48 40.5 48 28V16.2L32 10Z" 
+        fill="#FFFFFF" />
+        
+  <!-- Center Forensic Crosshair Emblem (Orange & Greyish) -->
+  <path d="M32 20V44M20 32H44" 
+        stroke="#EE692E" 
+        stroke-width="3" 
+        stroke-linecap="round" />
+        
+  <circle cx="32" cy="32" r="6" 
+          stroke="#3A3632" 
+          stroke-width="2.5" 
+          fill="none" />
+          
+  <circle cx="32" cy="32" r="2.5" 
+          fill="#EE692E" />
+</svg>
