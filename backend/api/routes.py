@@ -520,627 +520,359 @@ def _generate_html_report(case: dict) -> str:
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TrustGuard Forensic Risk Certificate — {case_id}</title>
+    <title>TrustGuard — Certificate {case_id}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {{
-            --primary-orange: #EE692E;
-            --primary-dark: #2B2724;
-            --accent-gold: #C59A45;
-            --border-seal: #D1CDC1;
-            --bg-parchment: #FCFAF6;
+            --orange: #EE692E;
+            --dark: #1E1B18;
+            --gold: #C59A45;
+            --muted: #8D7B68;
+            --parchment: #FCFAF6;
+            --border: #D5CEBE;
         }}
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
         body {{
             background: #EDE8DE;
-            color: #2D2925;
             font-family: 'Inter', -apple-system, sans-serif;
-            padding: 30px 16px 60px;
+            color: var(--dark);
             display: flex;
             flex-direction: column;
             align-items: center;
+            padding: 28px 16px 50px;
             min-height: 100vh;
         }}
 
-        /* Action Download Navigation Bar */
-        .action-toolbar {{
-            max-width: 900px;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #FFFFFF;
-            border: 1px solid #D5CEBE;
-            padding: 12px 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 18px rgba(45, 41, 37, 0.08);
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 12px;
+        /* ── Toolbar ── */
+        .toolbar {{
+            max-width: 780px; width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            background: #fff; border: 1px solid var(--border);
+            padding: 10px 18px; border-radius: 10px;
+            box-shadow: 0 3px 14px rgba(45,41,37,.07);
+            margin-bottom: 22px; flex-wrap: wrap; gap: 10px;
         }}
         .toolbar-brand {{
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.95rem;
-            font-weight: 800;
-            color: #2D2925;
-            letter-spacing: -0.02em;
+            display: flex; align-items: center; gap: 7px;
+            font-weight: 800; font-size: .9rem; color: var(--dark);
         }}
-        .toolbar-brand span {{
-            color: var(--primary-orange);
+        .toolbar-brand span {{ color: var(--orange); }}
+        .btn-row {{ display: flex; gap: 6px; flex-wrap: wrap; }}
+        .btn {{
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 7px 13px; border-radius: 6px;
+            font-size: .78rem; font-weight: 700; cursor: pointer;
+            text-decoration: none; border: 1px solid transparent;
+            transition: all .15s;
         }}
-        .btn-group {{
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }}
-        .btn-action {{
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 0.82rem;
-            font-weight: 700;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.15s ease;
-            border: 1px solid transparent;
-        }}
-        .btn-primary {{
-            background: var(--primary-orange);
-            color: #FFFFFF;
-        }}
-        .btn-primary:hover {{
-            background: #D8571F;
-            transform: translateY(-1px);
-        }}
-        .btn-outline {{
-            background: #FFFFFF;
-            border: 1px solid #D1CDC1;
-            color: #3A3632;
-        }}
-        .btn-outline:hover {{
-            background: #F5F1E9;
-            border-color: #B5AFA3;
-        }}
+        .btn-fill {{ background: var(--orange); color: #fff; }}
+        .btn-fill:hover {{ background: #D8571F; }}
+        .btn-ghost {{ background: #fff; border-color: #D1CDC1; color: #3A3632; }}
+        .btn-ghost:hover {{ background: #F5F1E9; }}
 
-        /* Security Certificate Frame */
-        .cert-outer-wrapper {{
-            max-width: 900px;
-            width: 100%;
-            background: var(--bg-parchment);
-            border: 12px solid #FFFFFF;
-            box-shadow: 0 20px 50px rgba(45, 41, 37, 0.16), 0 0 0 1px #D5CEBE;
-            position: relative;
-            padding: 36px 42px;
-        }}
-        .guilloche-border {{
-            border: 2px solid #8D7B68;
-            outline: 1px dashed #C59A45;
-            outline-offset: -6px;
-            padding: 30px;
-            position: relative;
-            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.95) 0%, rgba(250,246,238,0.92) 100%);
-        }}
-        .corner-ornament {{
-            position: absolute;
-            width: 24px;
-            height: 24px;
-            color: #8D7B68;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: serif;
-        }}
-        .tl {{ top: 2px; left: 2px; }}
-        .tr {{ top: 2px; right: 2px; }}
-        .bl {{ bottom: 2px; left: 2px; }}
-        .br {{ bottom: 2px; right: 2px; }}
-
-        /* Security Watermark Background */
-        .watermark-bg {{
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-25deg);
-            font-size: 58px;
-            font-weight: 900;
-            color: rgba(141, 123, 104, 0.04);
-            letter-spacing: 0.15em;
-            pointer-events: none;
-            white-space: nowrap;
-            user-select: none;
-            text-transform: uppercase;
-            font-family: 'Cinzel', serif;
-        }}
-
-        /* Header block */
-        .cert-header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #2B2724;
-            padding-bottom: 20px;
-            margin-bottom: 24px;
+        /* ── Certificate Card ── */
+        .cert {{
+            max-width: 780px; width: 100%;
+            background: var(--parchment);
+            border: 10px solid #fff;
+            box-shadow: 0 18px 44px rgba(45,41,37,.14), 0 0 0 1px var(--border);
+            padding: 32px 38px;
             position: relative;
         }}
-        .cert-title-group {{
-            display: flex;
-            flex-direction: column;
-        }}
-        .classification-stamp {{
-            font-size: 0.65rem;
-            font-weight: 800;
-            letter-spacing: 0.18em;
-            color: var(--primary-orange);
-            text-transform: uppercase;
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }}
-        .main-title {{
-            font-family: 'Cinzel', serif;
-            font-size: 1.65rem;
-            font-weight: 800;
-            letter-spacing: 0.02em;
-            color: #1E1B18;
-            text-transform: uppercase;
-            line-height: 1.2;
-        }}
-        .subtitle {{
-            font-size: 0.82rem;
-            color: #6B6258;
-            margin-top: 4px;
-            font-weight: 500;
-        }}
-        .verdict-badge-box {{
-            padding: 10px 18px;
-            border-radius: 8px;
-            background: {badge_bg};
-            border: 2px solid {badge_border};
-            color: {badge_color};
-            text-align: right;
-            box-shadow: 0 4px 12px rgba(45,41,37,0.15);
-        }}
-        .verdict-badge-title {{
-            font-size: 1.05rem;
-            font-weight: 900;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            font-family: 'Inter', sans-serif;
-        }}
-        .verdict-badge-sub {{
-            font-size: 0.68rem;
-            opacity: 0.9;
-            margin-top: 2px;
-            letter-spacing: 0.03em;
-        }}
-
-        /* Metadata Grid */
-        .meta-container {{
-            background: #FFFFFF;
-            border: 1px solid #D5CEBE;
-            border-radius: 8px;
-            padding: 14px 18px;
-            margin-bottom: 22px;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px 24px;
-            font-size: 0.82rem;
-        }}
-        .meta-item {{
-            display: flex;
-            flex-direction: column;
-        }}
-        .meta-label {{
-            font-size: 0.68rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #8D7B68;
-            margin-bottom: 2px;
-        }}
-        .meta-value {{
-            font-weight: 600;
-            color: #2D2925;
-            word-break: break-all;
-        }}
-        .meta-mono {{
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.78rem;
-            color: #1E1B18;
-            background: #F6F3EC;
-            padding: 3px 6px;
-            border-radius: 4px;
-            display: inline-block;
-        }}
-
-        /* Component Sections */
-        .section-heading {{
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #2B2724;
-            border-bottom: 1px solid #D5CEBE;
-            padding-bottom: 6px;
-            margin: 20px 0 12px;
-        }}
-        .section-badge {{
-            font-size: 0.7rem;
-            color: var(--primary-orange);
-            font-weight: 700;
-            letter-spacing: 0.04em;
-        }}
-
-        .cards-grid {{
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 16px;
-        }}
-        .evidence-card {{
-            background: #FFFFFF;
-            border: 1px solid #DCD5C6;
-            border-radius: 8px;
-            padding: 14px;
-            border-top: 3px solid var(--primary-orange);
-        }}
-        .evidence-card h4 {{
-            font-size: 0.82rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            color: #2B2724;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }}
-        .evidence-finding {{
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: #1E1B18;
-            margin-bottom: 4px;
-        }}
-        .evidence-details {{
-            font-size: 0.74rem;
-            color: #6B6258;
-            line-height: 1.45;
-        }}
-
-        /* Contradiction Callout Box */
-        .disagreement-box {{
-            background: #FFFFFF;
-            border: 1px solid #DCD5C6;
-            border-left: 5px solid {badge_border};
-            border-radius: 8px;
-            padding: 14px 18px;
-            margin-bottom: 22px;
-        }}
-        .disagreement-header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-        }}
-        .disagreement-title {{
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: #2B2724;
-            text-transform: uppercase;
-        }}
-        .divergence-pill {{
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.72rem;
-            padding: 2px 8px;
-            border-radius: 12px;
-            background: #F6F3EC;
-            border: 1px solid #D5CEBE;
-            font-weight: 700;
-        }}
-
-        /* Sign-off & Seal Block */
-        .signoff-section {{
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px dashed #B8ACA0;
-        }}
-        .sig-block {{
-            width: 38%;
-        }}
-        .sig-label {{
-            font-size: 0.68rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #8D7B68;
-            margin-bottom: 4px;
-        }}
-        .sig-name {{
-            font-size: 0.88rem;
-            font-weight: 700;
-            color: #2B2724;
-            font-family: 'Cinzel', serif;
-        }}
-        .sig-rule {{
-            height: 1px;
-            background: #2B2724;
-            margin: 8px 0 4px;
-        }}
-        .sig-sub {{
-            font-size: 0.68rem;
-            color: #7A7065;
-        }}
-
-        /* Intricate Official Forensic Seal */
-        .seal-emboss {{
-            width: 110px;
-            height: 110px;
-            border-radius: 50%;
-            border: 3px double #C59A45;
-            outline: 2px dashed #8D7B68;
+        .inner {{
+            border: 2px solid var(--muted);
+            outline: 1px dashed var(--gold);
             outline-offset: -5px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            padding: 32px 28px;
+            position: relative;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.96), rgba(250,246,238,.93));
+        }}
+        .corner {{ position: absolute; color: var(--muted); font-size: 14px; font-family: serif; }}
+        .c-tl {{ top: 3px; left: 5px; }}
+        .c-tr {{ top: 3px; right: 5px; }}
+        .c-bl {{ bottom: 3px; left: 5px; }}
+        .c-br {{ bottom: 3px; right: 5px; }}
+        .watermark {{
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%,-50%) rotate(-22deg);
+            font: 900 52px 'Cinzel',serif;
+            color: rgba(141,123,104,.035);
+            letter-spacing: .12em; pointer-events: none;
+            white-space: nowrap; user-select: none;
+            text-transform: uppercase;
+        }}
+
+        /* ── Header ── */
+        .header {{
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--dark);
+            padding-bottom: 18px; margin-bottom: 22px;
+        }}
+        .stamp {{
+            font-size: .6rem; font-weight: 800;
+            letter-spacing: .15em; color: var(--orange);
+            text-transform: uppercase; margin-bottom: 3px;
+        }}
+        .stamp span {{ margin-right: 5px; }}
+        h1 {{
+            font: 800 1.5rem/1.15 'Cinzel',serif;
+            color: var(--dark); text-transform: uppercase;
+            letter-spacing: .02em;
+        }}
+        .tagline {{ font-size: .78rem; color: var(--muted); margin-top: 3px; }}
+        .verdict {{
+            padding: 10px 16px; border-radius: 8px;
+            background: {badge_bg}; border: 2px solid {badge_border};
+            color: {badge_color}; text-align: center; flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(45,41,37,.12);
+        }}
+        .verdict strong {{
+            display: block; font-size: .95rem;
+            letter-spacing: .04em; text-transform: uppercase;
+        }}
+        .verdict small {{
+            display: block; font-size: .62rem;
+            opacity: .9; margin-top: 2px; letter-spacing: .02em;
+        }}
+
+        /* ── Info Strip ── */
+        .info-strip {{
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 10px 20px; background: #fff;
+            border: 1px solid var(--border); border-radius: 8px;
+            padding: 12px 16px; margin-bottom: 20px;
+        }}
+        .info-strip dt {{
+            font-size: .62rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .06em;
+            color: var(--muted);
+        }}
+        .info-strip dd {{
+            font-weight: 600; font-size: .8rem; color: var(--dark);
+            word-break: break-all; margin-bottom: 6px;
+        }}
+        .mono {{
+            font-family: 'JetBrains Mono',monospace;
+            font-size: .72rem; background: #F6F3EC;
+            padding: 2px 5px; border-radius: 3px;
+        }}
+        .span2 {{ grid-column: span 2; }}
+
+        /* ── Section titles ── */
+        .sec-title {{
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: .78rem; font-weight: 800;
+            text-transform: uppercase; letter-spacing: .06em;
+            color: var(--dark); border-bottom: 1px solid var(--border);
+            padding-bottom: 5px; margin: 18px 0 10px;
+        }}
+        .sec-title .tag {{
+            font-size: .64rem; color: var(--orange); font-weight: 700;
+        }}
+
+        /* ── Evidence Cards ── */
+        .cards {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }}
+        .card {{
+            background: #fff; border: 1px solid #DCD5C6;
+            border-radius: 8px; padding: 12px 14px;
+            border-top: 3px solid var(--orange);
+        }}
+        .card h4 {{
+            font-size: .76rem; font-weight: 800;
+            text-transform: uppercase; color: var(--dark);
+            margin-bottom: 5px; display: flex; align-items: center; gap: 5px;
+        }}
+        .card .finding {{ font-size: .78rem; font-weight: 700; color: var(--dark); margin-bottom: 3px; }}
+        .card .detail {{ font-size: .7rem; color: #6B6258; line-height: 1.4; }}
+
+        /* ── Disagreement ── */
+        .disag {{
+            background: #fff; border: 1px solid #DCD5C6;
+            border-left: 4px solid {badge_border};
+            border-radius: 8px; padding: 12px 16px; margin-bottom: 18px;
+        }}
+        .disag-row {{
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 4px;
+        }}
+        .disag-title {{ font-size: .78rem; font-weight: 800; text-transform: uppercase; }}
+        .pill {{
+            font-family: 'JetBrains Mono',monospace;
+            font-size: .68rem; padding: 2px 7px;
+            border-radius: 10px; background: #F6F3EC;
+            border: 1px solid var(--border); font-weight: 700;
+        }}
+        .disag p {{ font-size: .74rem; color: #47413A; line-height: 1.45; }}
+
+        /* ── Footer / Seal ── */
+        .footer {{
+            display: flex; justify-content: space-between;
+            align-items: flex-end; margin-top: 26px;
+            padding-top: 18px; border-top: 1px dashed #B8ACA0;
+        }}
+        .sig {{ width: 36%; }}
+        .sig-lbl {{
+            font-size: .62rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .05em;
+            color: var(--muted); margin-bottom: 3px;
+        }}
+        .sig-name {{ font: 700 .84rem 'Cinzel',serif; color: var(--dark); }}
+        .sig-line {{ height: 1px; background: var(--dark); margin: 6px 0 3px; }}
+        .sig-sub {{ font-size: .62rem; color: #7A7065; }}
+
+        .seal {{
+            width: 96px; height: 96px; border-radius: 50%;
+            border: 3px double var(--gold);
+            outline: 2px dashed var(--muted); outline-offset: -5px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
             text-align: center;
             background: radial-gradient(circle, #FFFDF9 60%, #F5EDE0 100%);
-            box-shadow: 0 4px 12px rgba(45, 41, 37, 0.08);
-            position: relative;
+            box-shadow: 0 3px 10px rgba(45,41,37,.07);
         }}
-        .seal-text-top {{
-            font-size: 7px;
-            font-weight: 900;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: #8D7B68;
-        }}
-        .seal-star {{
-            color: var(--primary-orange);
-            font-size: 14px;
-            margin: 2px 0;
-        }}
-        .seal-center {{
-            font-family: 'Cinzel', serif;
-            font-size: 9px;
-            font-weight: 900;
-            letter-spacing: 0.06em;
-            color: #2B2724;
-            line-height: 1.15;
-            text-transform: uppercase;
-        }}
-        .seal-text-bot {{
-            font-size: 6.5px;
-            font-weight: 800;
-            letter-spacing: 0.1em;
-            color: #8D7B68;
-            margin-top: 3px;
-        }}
+        .seal-top {{ font-size: 6px; font-weight: 900; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }}
+        .seal-icon {{ color: var(--orange); font-size: 12px; margin: 1px 0; }}
+        .seal-mid {{ font: 900 8px/1.15 'Cinzel',serif; color: var(--dark); text-transform: uppercase; }}
+        .seal-bot {{ font-size: 5.5px; font-weight: 800; letter-spacing: .08em; color: var(--muted); margin-top: 2px; }}
 
-        /* Legal Admissibility Note */
-        .legal-footer {{
-            margin-top: 24px;
-            font-size: 0.68rem;
-            color: #8D7B68;
-            text-align: center;
-            line-height: 1.5;
-            border-top: 1px solid #E8E2D5;
-            padding-top: 12px;
+        .legal {{
+            margin-top: 18px; font-size: .6rem; color: var(--muted);
+            text-align: center; line-height: 1.5;
+            border-top: 1px solid #E8E2D5; padding-top: 10px;
         }}
 
         @media print {{
-            body {{
-                background: #FFFFFF !important;
-                padding: 0 !important;
-            }}
-            .action-toolbar {{
-                display: none !important;
-            }}
-            .cert-outer-wrapper {{
-                border: none !important;
-                box-shadow: none !important;
-                padding: 15px !important;
-                max-width: 100% !important;
-            }}
-            .guilloche-border {{
-                border: 2px solid #000 !important;
-                background: #FFFFFF !important;
-            }}
+            body {{ background: #fff !important; padding: 0 !important; }}
+            .toolbar {{ display: none !important; }}
+            .cert {{ border: none !important; box-shadow: none !important; padding: 12px !important; max-width: 100% !important; }}
+            .inner {{ border: 2px solid #000 !important; background: #fff !important; }}
         }}
     </style>
 </head>
 <body>
 
-    <!-- Top Action Toolbar -->
-    <div class="action-toolbar">
+    <!-- Toolbar -->
+    <div class="toolbar">
         <div class="toolbar-brand">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-orange)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            TrustGuard <span>Certificate Suite</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--orange)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            TrustGuard <span>Certificate</span>
         </div>
-        <div class="btn-group">
-            <button onclick="window.print()" class="btn-action btn-primary" title="Print document or save as vector PDF">
-                🖨️ Print / Save PDF
-            </button>
-            <a href="/export/{case_id}?format=json" download="{case_id}.json" class="btn-action btn-outline" title="Download raw cryptographic dossier">
-                📦 JSON Case File
-            </a>
-            <a href="/export/{case_id}?format=csv" download="{case_id}_audit.csv" class="btn-action btn-outline" title="Download forensic audit data in CSV">
-                📊 CSV Audit Log
-            </a>
-            <button onclick="downloadHtmlFile()" class="btn-action btn-outline" title="Save offline HTML certificate">
-                💾 Save HTML
-            </button>
+        <div class="btn-row">
+            <button onclick="window.print()" class="btn btn-fill">🖨️ Print / PDF</button>
+            <a href="/export/{case_id}?format=json" download="{case_id}.json" class="btn btn-ghost">📦 JSON</a>
+            <a href="/export/{case_id}?format=csv" download="{case_id}_audit.csv" class="btn btn-ghost">📊 CSV</a>
+            <button onclick="downloadHtml()" class="btn btn-ghost">💾 HTML</button>
         </div>
     </div>
 
-    <!-- Official Certificate Frame -->
-    <div class="cert-outer-wrapper">
-        <div class="watermark-bg">TRUSTGUARD FORENSIC INTEGRITY</div>
-
-        <div class="guilloche-border">
-            <div class="corner-ornament tl">❖</div>
-            <div class="corner-ornament tr">❖</div>
-            <div class="corner-ornament bl">❖</div>
-            <div class="corner-ornament br">❖</div>
+    <!-- Certificate -->
+    <div class="cert">
+        <div class="watermark">TRUSTGUARD</div>
+        <div class="inner">
+            <span class="corner c-tl">❖</span>
+            <span class="corner c-tr">❖</span>
+            <span class="corner c-bl">❖</span>
+            <span class="corner c-br">❖</span>
 
             <!-- Header -->
-            <div class="cert-header">
-                <div class="cert-title-group">
-                    <div class="classification-stamp">
-                        <span>●</span> OFFICIAL FORENSIC EXAMINATION REPORT // FRE-902 COMPLIANT
-                    </div>
-                    <h1 class="main-title">Forensic Risk Certificate</h1>
-                    <div class="subtitle">Multi-Modal Disagreement Evaluation & Authenticity Dossier</div>
+            <div class="header">
+                <div>
+                    <div class="stamp"><span>●</span> FRE-902 COMPLIANT</div>
+                    <h1>Forensic Risk<br>Certificate</h1>
+                    <div class="tagline">Multi-Modal Authenticity Evaluation</div>
                 </div>
-
-                <div class="verdict-badge-box">
-                    <div class="verdict-badge-title">{level_label}</div>
-                    <div class="verdict-badge-sub">{verdict_summary}</div>
+                <div class="verdict">
+                    <strong>{level_label}</strong>
+                    <small>{verdict_summary}</small>
                 </div>
             </div>
 
-            <!-- Core Case Provenance Grid -->
-            <div class="meta-container">
-                <div class="meta-item">
-                    <span class="meta-label">Case Identifier & Dossier Number</span>
-                    <span class="meta-value meta-mono">{case_id}</span>
-                </div>
-                <div class="meta-item">
-                    <span class="meta-label">Ingestion & Analysis Timestamp (UTC)</span>
-                    <span class="meta-value meta-mono">{timestamp}</span>
-                </div>
-                <div class="meta-item">
-                    <span class="meta-label">Investigated Media File & Specs</span>
-                    <span class="meta-value"><strong>{summary.get('filename') or 'Uploaded Target Media'}</strong> &nbsp;({media_specs})</span>
-                </div>
-                <div class="meta-item">
-                    <span class="meta-label">Human Adjudication Requirement</span>
-                    <span class="meta-value">{'MANDATORY REVIEW BY CERTIFIED ANALYST' if risk.get('requires_human_review') else 'OPTIONAL — STATISTICAL CONFIDENCE MET'}</span>
-                </div>
-                <div class="meta-item" style="grid-column: span 2;">
-                    <span class="meta-label">Cryptographic Ingestion Hash (SHA-256 Chain-of-Custody)</span>
-                    <span class="meta-value meta-mono" style="letter-spacing: 0.04em;">{sha256_hash}</span>
-                </div>
+            <!-- Case Info -->
+            <dl class="info-strip">
+                <div><dt>Case ID</dt><dd class="mono">{case_id}</dd></div>
+                <div><dt>Timestamp (UTC)</dt><dd class="mono">{timestamp}</dd></div>
+                <div><dt>Media</dt><dd><strong>{summary.get('filename') or 'Uploaded Media'}</strong> — {media_specs}</dd></div>
+                <div><dt>Review</dt><dd>{'MANDATORY — Human Review Required' if risk.get('requires_human_review') else 'OPTIONAL — Confidence Met'}</dd></div>
+                <div class="span2"><dt>SHA-256 Hash</dt><dd class="mono" style="font-size:.68rem;">{sha256_hash}</dd></div>
+            </dl>
+
+            <!-- Narrative -->
+            <div class="sec-title"><span>Narrative</span><span class="tag">CONTEXT</span></div>
+            <div style="background:#fff;border:1px solid #DCD5C6;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:#3A3632;font-style:italic;line-height:1.5;">
+                "{risk.get('narrative', 'No elevated risk factors detected in available content and context.')}"
             </div>
 
-            <!-- Context Narrative -->
-            <div class="section-heading">
-                <span>1. Context Risk & Narrative Analysis</span>
-                <span class="section-badge">SEMANTIC LAYER</span>
-            </div>
-            <div style="background: #FFFFFF; border: 1px solid #DCD5C6; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; font-size: 0.84rem; color: #3A3632; font-style: italic; line-height: 1.5;">
-                "{risk.get('narrative', 'Risk evaluated based on available visual and acoustic evidence modalities.')}"
-            </div>
-
-            <!-- Modality Decomposition -->
-            <div class="section-heading">
-                <span>2. Independent Modality Evidence Decomposition</span>
-                <span class="section-badge">DEEP SENSOR PIPELINES</span>
-            </div>
-            <div class="cards-grid">
-                <div class="evidence-card">
+            <!-- Evidence -->
+            <div class="sec-title"><span>Evidence</span><span class="tag">ANALYSIS</span></div>
+            <div class="cards">
+                <div class="card">
                     <h4>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                        Visual Artifact Examination
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Visual
                     </h4>
-                    <div class="evidence-finding">Finding: {vis_band}</div>
-                    <div class="evidence-details">
-                        Signal: <strong>{vis_sig}</strong>. 
-                        Executed Spatial Error Level Analysis (ELA) and 2D Fast Fourier Transform (FFT) high-frequency anomaly detection across sampled frames.
-                    </div>
+                    <div class="finding">{vis_band}</div>
+                    <div class="detail">Signal: <strong>{vis_sig}</strong> · ELA + FFT analysis</div>
                 </div>
-
-                <div class="evidence-card">
+                <div class="card">
                     <h4>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-                        Acoustic Integrity Examination
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                        Audio
                     </h4>
-                    <div class="evidence-finding">Finding: {aud_band}</div>
-                    <div class="evidence-details">
-                        Signal: <strong>{aud_sig}</strong>. 
-                        Inspected Mel-Spectrogram harmonics, acoustic phase continuity, and synthetic voice cloning artifacts.
-                    </div>
+                    <div class="finding">{aud_band}</div>
+                    <div class="detail">Signal: <strong>{aud_sig}</strong> · Mel-spectrogram + phase check</div>
                 </div>
             </div>
 
-            <!-- Disagreement Engine Verdict -->
-            <div class="section-heading">
-                <span>3. Multi-Modal Disagreement Evaluation</span>
-                <span class="section-badge">CONTRADICTION SIGNAL</span>
-            </div>
-            <div class="disagreement-box">
-                <div class="disagreement-header">
-                    <span class="disagreement-title">
-                        {'⚠️ CROSS-MODAL CONTRADICTION FLAGGED' if disag_flag else '✓ MODALITIES SYNCHRONIZED — NO DIVERGENCE'}
+            <!-- Disagreement -->
+            <div class="sec-title"><span>Cross-Modal Check</span><span class="tag">SYNC</span></div>
+            <div class="disag">
+                <div class="disag-row">
+                    <span class="disag-title">
+                        {'⚠️ Contradiction Detected' if disag_flag else '✓ Modalities Synchronized'}
                     </span>
-                    <span class="divergence-pill">Divergence Score: {div_score_val:.2f} (Threshold: 0.35)</span>
+                    <span class="pill">{div_score_val:.2f} / 0.35</span>
                 </div>
-                <p style="font-size: 0.82rem; color: #47413A; line-height: 1.5;">
-                    {disagreement.get('narrative') or 'Visual and acoustic modalities exhibit synchronized evidence traits.'}
-                </p>
-                <p style="font-size: 0.72rem; color: #8D7B68; margin-top: 6px; font-style: italic;">
-                    TrustGuard Core Axiom: Independent sensory modalities rarely fail simultaneously. Cross-modal disagreement is isolated as actionable forensic evidence.
-                </p>
+                <p>{disagreement.get('narrative') or 'Visual and audio evidence are consistent with each other.'}</p>
             </div>
 
-            <!-- Chain-of-Custody Sign-Off & Official Embossed Seal -->
-            <div class="signoff-section">
-                <div class="sig-block">
-                    <div class="sig-label">Certified Forensic Investigator</div>
+            <!-- Sign-off -->
+            <div class="footer">
+                <div class="sig">
+                    <div class="sig-lbl">Forensic Investigator</div>
                     <div class="sig-name">{analyst_name}</div>
-                    <div class="sig-rule"></div>
-                    <div class="sig-sub">Lead Forensic Adjudication Officer • TrustGuard</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-sub">Lead Adjudication Officer · TrustGuard</div>
                 </div>
-
-                <!-- High-Security Circular Crest -->
-                <div class="seal-emboss">
-                    <div class="seal-text-top">TRUSTGUARD LABS</div>
-                    <div class="seal-star">✦</div>
-                    <div class="seal-center">AUTHENTIC<br>VERIFIED</div>
-                    <div class="seal-text-bot">ISO/IEC 27037</div>
+                <div class="seal">
+                    <div class="seal-top">TRUSTGUARD</div>
+                    <div class="seal-icon">✦</div>
+                    <div class="seal-mid">VERIFIED</div>
+                    <div class="seal-bot">ISO 27037</div>
                 </div>
-
-                <div class="sig-block" style="text-align: right;">
-                    <div class="sig-label">Certification Date & Provenance</div>
-                    <div class="sig-name" style="font-size: 0.82rem; font-family: monospace;">{decision_date[:19]}</div>
-                    <div class="sig-rule"></div>
-                    <div class="sig-sub">Tamper-Evident Cryptographic Ledger Entry</div>
+                <div class="sig" style="text-align:right;">
+                    <div class="sig-lbl">Certified On</div>
+                    <div class="sig-name" style="font-size:.78rem;font-family:'JetBrains Mono',monospace;">{decision_date[:19]}</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-sub">Cryptographic Ledger Entry</div>
                 </div>
             </div>
 
-            <!-- Legal Evidence Note -->
-            <div class="legal-footer">
-                This Forensic Risk Certificate constitutes a defense-ready evidentiary dossier pursuant to Federal Rules of Evidence 902(13) and 902(14) regarding self-authenticating electronic records generated by a process of scientific examination. Hash verified at ingestion.
+            <div class="legal">
+                Certificate pursuant to FRE 902(13) & 902(14) — self-authenticating electronic record. Hash verified at ingestion.
             </div>
         </div>
     </div>
 
     <script>
-        function downloadHtmlFile() {{
-            const htmlContent = document.documentElement.outerHTML;
-            const blob = new Blob([htmlContent], {{ type: 'text/html' }});
-            const url = URL.createObjectURL(blob);
+        function downloadHtml() {{
+            const blob = new Blob([document.documentElement.outerHTML], {{ type: 'text/html' }});
             const a = document.createElement('a');
-            a.href = url;
+            a.href = URL.createObjectURL(blob);
             a.download = '{case_id}_certificate.html';
-            document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            URL.revokeObjectURL(a.href);
         }}
     </script>
 </body>
