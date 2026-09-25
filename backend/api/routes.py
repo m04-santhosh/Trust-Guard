@@ -515,6 +515,13 @@ def _generate_html_report(case: dict) -> str:
     raw_dec_date = str(decision.get('decided_at') or timestamp)
     decision_date = raw_dec_date[:19] if raw_dec_date else "2026-09-25T06:30:00"
 
+    # Prepare narrative (short one-line summary)
+    narrative_text = str(risk.get("narrative") or "Cross-modal forensic analysis completed. No statistical contradiction identified.")
+    if len(narrative_text) > 140:
+        short_summary = narrative_text[:137] + "..."
+    else:
+        short_summary = narrative_text
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -530,8 +537,14 @@ def _generate_html_report(case: dict) -> str:
             --dark: #1E1B18;
             --gold: #C59A45;
             --muted: #8D7B68;
-            --parchment: #FCFAF6;
-            --border: #D5CEBE;
+            --parchment: #FAF7F2;
+            --border: #DCD5C6;
+            --danger-bg: #FEECEB;
+            --danger-border: #F5A39B;
+            --danger-text: #C5221F;
+            --success-bg: #E6F4EA;
+            --success-border: #A8DAB5;
+            --success-text: #137333;
         }}
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
         body {{
@@ -541,29 +554,29 @@ def _generate_html_report(case: dict) -> str:
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 28px 16px 50px;
+            padding: 24px 16px 40px;
             min-height: 100vh;
         }}
 
         /* ── Toolbar ── */
         .toolbar {{
-            max-width: 780px; width: 100%;
+            max-width: 740px; width: 100%;
             display: flex; justify-content: space-between; align-items: center;
             background: #fff; border: 1px solid var(--border);
-            padding: 10px 18px; border-radius: 10px;
-            box-shadow: 0 3px 14px rgba(45,41,37,.07);
-            margin-bottom: 22px; flex-wrap: wrap; gap: 10px;
+            padding: 8px 16px; border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(45,41,37,.06);
+            margin-bottom: 18px; flex-wrap: wrap; gap: 8px;
         }}
         .toolbar-brand {{
-            display: flex; align-items: center; gap: 7px;
-            font-weight: 800; font-size: .9rem; color: var(--dark);
+            display: flex; align-items: center; gap: 6px;
+            font-weight: 800; font-size: .88rem; color: var(--dark);
         }}
         .toolbar-brand span {{ color: var(--orange); }}
         .btn-row {{ display: flex; gap: 6px; flex-wrap: wrap; }}
         .btn {{
-            display: inline-flex; align-items: center; gap: 5px;
-            padding: 7px 13px; border-radius: 6px;
-            font-size: .78rem; font-weight: 700; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 6px 12px; border-radius: 6px;
+            font-size: .75rem; font-weight: 700; cursor: pointer;
             text-decoration: none; border: 1px solid transparent;
             transition: all .15s;
         }}
@@ -574,189 +587,219 @@ def _generate_html_report(case: dict) -> str:
 
         /* ── Certificate Card ── */
         .cert {{
-            max-width: 780px; width: 100%;
+            max-width: 740px; width: 100%;
             background: var(--parchment);
-            border: 10px solid #fff;
-            box-shadow: 0 18px 44px rgba(45,41,37,.14), 0 0 0 1px var(--border);
-            padding: 32px 38px;
+            border: 8px solid #fff;
+            box-shadow: 0 16px 40px rgba(45,41,37,.12), 0 0 0 1px var(--border);
+            padding: 28px 32px;
             position: relative;
         }}
         .inner {{
             border: 2px solid var(--muted);
             outline: 1px dashed var(--gold);
             outline-offset: -5px;
-            padding: 32px 28px;
+            padding: 26px 24px;
             position: relative;
-            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.96), rgba(250,246,238,.93));
+            background: radial-gradient(circle at 50% 30%, rgba(255,255,255,.98), rgba(250,246,238,.94));
         }}
-        .corner {{ position: absolute; color: var(--muted); font-size: 14px; font-family: serif; }}
-        .c-tl {{ top: 3px; left: 5px; }}
-        .c-tr {{ top: 3px; right: 5px; }}
-        .c-bl {{ bottom: 3px; left: 5px; }}
-        .c-br {{ bottom: 3px; right: 5px; }}
-        .watermark {{
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%,-50%) rotate(-22deg);
-            font: 900 52px 'Cinzel',serif;
-            color: rgba(141,123,104,.035);
-            letter-spacing: .12em; pointer-events: none;
-            white-space: nowrap; user-select: none;
-            text-transform: uppercase;
-        }}
+        .corner {{ position: absolute; color: var(--muted); font-size: 14px; font-family: serif; user-select: none; }}
+        .c-tl {{ top: 4px; left: 6px; }}
+        .c-tr {{ top: 4px; right: 6px; }}
+        .c-bl {{ bottom: 4px; left: 6px; }}
+        .c-br {{ bottom: 4px; right: 6px; }}
 
-        /* ── Header ── */
+        /* ── Certificate Header ── */
         .header {{
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 2px solid var(--dark);
-            padding-bottom: 18px; margin-bottom: 22px;
+            text-align: center;
+            border-bottom: 1px solid #E2DCD0;
+            padding-bottom: 14px; margin-bottom: 18px;
         }}
         .stamp {{
-            font-size: .6rem; font-weight: 800;
-            letter-spacing: .15em; color: var(--orange);
-            text-transform: uppercase; margin-bottom: 3px;
+            font-size: .62rem; font-weight: 800;
+            letter-spacing: .16em; color: var(--orange);
+            text-transform: uppercase; margin-bottom: 4px;
         }}
-        .stamp span {{ margin-right: 5px; }}
         h1 {{
-            font: 800 1.5rem/1.15 'Cinzel',serif;
+            font: 900 1.6rem/1.1 'Cinzel',serif;
             color: var(--dark); text-transform: uppercase;
-            letter-spacing: .02em;
+            letter-spacing: .03em;
         }}
-        .tagline {{ font-size: .78rem; color: var(--muted); margin-top: 3px; }}
-        .verdict {{
-            padding: 10px 16px; border-radius: 8px;
-            background: {badge_bg}; border: 2px solid {badge_border};
-            color: {badge_color}; text-align: center; flex-shrink: 0;
-            box-shadow: 0 3px 10px rgba(45,41,37,.12);
+        .meta-strip {{
+            display: flex; justify-content: center; gap: 16px;
+            font-size: .75rem; color: var(--muted); margin-top: 6px;
+            font-weight: 500;
         }}
-        .verdict strong {{
-            display: block; font-size: .95rem;
-            letter-spacing: .04em; text-transform: uppercase;
+        .meta-strip strong {{ color: var(--dark); font-family: 'JetBrains Mono',monospace; }}
+
+        /* ── Dominant Risk Hero Badge ── */
+        .risk-hero {{
+            display: flex; flex-direction: column; align-items: center;
+            text-align: center; margin: 16px 0 18px;
         }}
-        .verdict small {{
-            display: block; font-size: .62rem;
-            opacity: .9; margin-top: 2px; letter-spacing: .02em;
+        .risk-badge {{
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 12px 32px; border-radius: 40px;
+            background: {badge_bg}; border: 3px solid {badge_border};
+            color: {badge_color};
+            box-shadow: 0 8px 24px rgba(238,105,46,.25);
+            font-weight: 900; letter-spacing: .06em;
+            text-transform: uppercase;
+            transform: scale(1);
+        }}
+        .risk-badge .level-text {{
+            font-size: 1.35rem; font-family: 'Cinzel',serif; letter-spacing: .08em;
+        }}
+        .risk-badge .score-pill {{
+            margin-left: 12px; padding: 2px 10px;
+            background: rgba(0,0,0,.25); border-radius: 12px;
+            font-size: .85rem; font-family: 'JetBrains Mono',monospace;
+        }}
+        .one-line-summary {{
+            font-size: .88rem; font-weight: 600;
+            color: var(--dark); line-height: 1.45;
+            max-width: 580px; margin-top: 10px;
+            text-align: center;
         }}
 
-        /* ── Info Strip ── */
-        .info-strip {{
-            display: grid; grid-template-columns: 1fr 1fr;
-            gap: 10px 20px; background: #fff;
-            border: 1px solid var(--border); border-radius: 8px;
-            padding: 12px 16px; margin-bottom: 20px;
+        /* ── Evidence Badges Snapshot ── */
+        .evidence-row {{
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+            margin-bottom: 14px;
         }}
-        .info-strip dt {{
-            font-size: .62rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .06em;
-            color: var(--muted);
+        .badge-card {{
+            background: #fff; border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px 14px;
+            display: flex; align-items: center; justify-content: space-between;
         }}
-        .info-strip dd {{
-            font-weight: 600; font-size: .8rem; color: var(--dark);
-            word-break: break-all; margin-bottom: 6px;
+        .badge-card .left {{
+            display: flex; align-items: center; gap: 8px;
         }}
-        .mono {{
+        .badge-card .icon {{
+            width: 28px; height: 28px; border-radius: 6px;
+            background: #F4EFEB; display: flex; align-items: center; justify-content: center;
+            color: var(--orange); flex-shrink: 0;
+        }}
+        .badge-card .title {{
+            font-size: .72rem; font-weight: 800; text-transform: uppercase;
+            color: var(--muted); letter-spacing: .04em;
+        }}
+        .badge-card .verdict-chip {{
+            font-size: .76rem; font-weight: 700;
+            color: var(--dark);
+        }}
+        .status-pill {{
+            padding: 3px 8px; border-radius: 6px;
+            font-size: .68rem; font-weight: 800; text-transform: uppercase;
+            letter-spacing: .03em;
+        }}
+        .status-pill.danger {{ background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }}
+        .status-pill.success {{ background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }}
+
+        /* ── Disagreement Banner ── */
+        .disag-banner {{
+            border-radius: 8px; padding: 10px 14px;
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 16px;
+        }}
+        .disag-banner.flagged {{
+            background: #FFF4E5; border: 1px solid #FFE0B2;
+            color: #B25E00;
+        }}
+        .disag-banner.clean {{
+            background: #F1F8F4; border: 1px solid #C8E6C9;
+            color: #2E7D32;
+        }}
+        .disag-left {{
+            display: flex; align-items: center; gap: 8px;
+            font-size: .8rem; font-weight: 700;
+        }}
+        .disag-metric {{
             font-family: 'JetBrains Mono',monospace;
-            font-size: .72rem; background: #F6F3EC;
-            padding: 2px 5px; border-radius: 3px;
+            font-size: .72rem; font-weight: 700;
+            background: rgba(0,0,0,.05); padding: 2px 7px; border-radius: 4px;
         }}
-        .span2 {{ grid-column: span 2; }}
 
-        /* ── Section titles ── */
-        .sec-title {{
+        /* ── Collapsible Full Technical Detail ── */
+        details.tech-details {{
+            background: #FFFFFF; border: 1px solid var(--border);
+            border-radius: 8px; margin-bottom: 16px;
+            font-size: .76rem; overflow: hidden;
+            transition: all .2s;
+        }}
+        details.tech-details summary {{
+            padding: 10px 14px; font-weight: 700; cursor: pointer;
+            user-select: none; color: var(--dark);
             display: flex; justify-content: space-between; align-items: center;
-            font-size: .78rem; font-weight: 800;
-            text-transform: uppercase; letter-spacing: .06em;
-            color: var(--dark); border-bottom: 1px solid var(--border);
-            padding-bottom: 5px; margin: 18px 0 10px;
+            background: #FDFBF8; border-bottom: 1px solid transparent;
         }}
-        .sec-title .tag {{
-            font-size: .64rem; color: var(--orange); font-weight: 700;
+        details.tech-details[open] summary {{
+            border-bottom: 1px solid var(--border);
         }}
+        .tech-content {{
+            padding: 12px 14px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+        }}
+        .tech-item dt {{
+            font-size: .62rem; text-transform: uppercase; color: var(--muted);
+            font-weight: 700; letter-spacing: .04em;
+        }}
+        .tech-item dd {{
+            font-family: 'JetBrains Mono',monospace; font-size: .74rem;
+            color: var(--dark); margin-top: 2px;
+        }}
+        .tech-full {{ grid-column: span 2; }}
 
-        /* ── Evidence Cards ── */
-        .cards {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }}
-        .card {{
-            background: #fff; border: 1px solid #DCD5C6;
-            border-radius: 8px; padding: 12px 14px;
-            border-top: 3px solid var(--orange);
-        }}
-        .card h4 {{
-            font-size: .76rem; font-weight: 800;
-            text-transform: uppercase; color: var(--dark);
-            margin-bottom: 5px; display: flex; align-items: center; gap: 5px;
-        }}
-        .card .finding {{ font-size: .78rem; font-weight: 700; color: var(--dark); margin-bottom: 3px; }}
-        .card .detail {{ font-size: .7rem; color: #6B6258; line-height: 1.4; }}
-
-        /* ── Disagreement ── */
-        .disag {{
-            background: #fff; border: 1px solid #DCD5C6;
-            border-left: 4px solid {badge_border};
-            border-radius: 8px; padding: 12px 16px; margin-bottom: 18px;
-        }}
-        .disag-row {{
-            display: flex; justify-content: space-between;
-            align-items: center; margin-bottom: 4px;
-        }}
-        .disag-title {{ font-size: .78rem; font-weight: 800; text-transform: uppercase; }}
-        .pill {{
-            font-family: 'JetBrains Mono',monospace;
-            font-size: .68rem; padding: 2px 7px;
-            border-radius: 10px; background: #F6F3EC;
-            border: 1px solid var(--border); font-weight: 700;
-        }}
-        .disag p {{ font-size: .74rem; color: #47413A; line-height: 1.45; }}
-
-        /* ── Footer / Seal ── */
+        /* ── Bottom Provenance & Signature ── */
         .footer {{
-            display: flex; justify-content: space-between;
-            align-items: flex-end; margin-top: 26px;
-            padding-top: 18px; border-top: 1px dashed #B8ACA0;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            padding-top: 14px; border-top: 1px solid #E2DCD0;
+            margin-top: 10px;
         }}
-        .sig {{ width: 36%; }}
-        .sig-lbl {{
-            font-size: .62rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .05em;
-            color: var(--muted); margin-bottom: 3px;
+        .sig-col {{ width: 42%; }}
+        .sig-col .lbl {{
+            font-size: .6rem; text-transform: uppercase;
+            font-weight: 700; letter-spacing: .06em; color: var(--muted);
         }}
-        .sig-name {{ font: 700 .84rem 'Cinzel',serif; color: var(--dark); }}
-        .sig-line {{ height: 1px; background: var(--dark); margin: 6px 0 3px; }}
-        .sig-sub {{ font-size: .62rem; color: #7A7065; }}
+        .sig-col .name {{
+            font: 700 .82rem 'Cinzel',serif; color: var(--dark); margin-top: 2px;
+        }}
+        .sig-col .line {{ height: 1px; background: var(--dark); margin: 4px 0 2px; }}
+        .sig-col .sub {{ font-size: .62rem; color: #786C5E; }}
 
         .seal {{
-            width: 96px; height: 96px; border-radius: 50%;
-            border: 3px double var(--gold);
-            outline: 2px dashed var(--muted); outline-offset: -5px;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            text-align: center;
+            width: 76px; height: 76px; border-radius: 50%;
+            border: 2px double var(--gold); outline: 1px dashed var(--muted); outline-offset: -3px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
             background: radial-gradient(circle, #FFFDF9 60%, #F5EDE0 100%);
-            box-shadow: 0 3px 10px rgba(45,41,37,.07);
+            text-align: center; box-shadow: 0 2px 6px rgba(45,41,37,.06);
         }}
-        .seal-top {{ font-size: 6px; font-weight: 900; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }}
-        .seal-icon {{ color: var(--orange); font-size: 12px; margin: 1px 0; }}
-        .seal-mid {{ font: 900 8px/1.15 'Cinzel',serif; color: var(--dark); text-transform: uppercase; }}
-        .seal-bot {{ font-size: 5.5px; font-weight: 800; letter-spacing: .08em; color: var(--muted); margin-top: 2px; }}
+        .seal-t {{ font-size: 5.5px; font-weight: 900; letter-spacing: .08em; color: var(--muted); }}
+        .seal-m {{ font: 900 7px 'Cinzel',serif; color: var(--dark); margin: 1px 0; }}
+        .seal-b {{ font-size: 5px; font-weight: 800; color: var(--muted); }}
 
-        .legal {{
-            margin-top: 18px; font-size: .6rem; color: var(--muted);
-            text-align: center; line-height: 1.5;
-            border-top: 1px solid #E8E2D5; padding-top: 10px;
+        .hash-strip {{
+            margin-top: 14px; padding-top: 8px; border-top: 1px dashed #D5CEBE;
+            font-size: .62rem; color: var(--muted); text-align: center;
+            font-family: 'JetBrains Mono',monospace; word-break: break-all;
         }}
+        .hash-strip strong {{ color: var(--dark); }}
 
         @media print {{
             body {{ background: #fff !important; padding: 0 !important; }}
             .toolbar {{ display: none !important; }}
-            .cert {{ border: none !important; box-shadow: none !important; padding: 12px !important; max-width: 100% !important; }}
+            .cert {{ border: none !important; box-shadow: none !important; padding: 8px !important; }}
             .inner {{ border: 2px solid #000 !important; background: #fff !important; }}
+            details.tech-details {{ border: 1px solid #ccc !important; }}
+            details.tech-details[open] {{ break-inside: avoid; }}
         }}
     </style>
 </head>
 <body>
 
-    <!-- Toolbar -->
+    <!-- Top Action Bar -->
     <div class="toolbar">
         <div class="toolbar-brand">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--orange)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--orange)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             TrustGuard <span>Certificate</span>
         </div>
         <div class="btn-row">
@@ -767,9 +810,8 @@ def _generate_html_report(case: dict) -> str:
         </div>
     </div>
 
-    <!-- Certificate -->
+    <!-- Official Certificate Frame -->
     <div class="cert">
-        <div class="watermark">TRUSTGUARD</div>
         <div class="inner">
             <span class="corner c-tl">❖</span>
             <span class="corner c-tr">❖</span>
@@ -778,89 +820,139 @@ def _generate_html_report(case: dict) -> str:
 
             <!-- Header -->
             <div class="header">
-                <div>
-                    <div class="stamp"><span>●</span> FRE-902 COMPLIANT</div>
-                    <h1>Forensic Risk<br>Certificate</h1>
-                    <div class="tagline">Multi-Modal Authenticity Evaluation</div>
-                </div>
-                <div class="verdict">
-                    <strong>{level_label}</strong>
-                    <small>{verdict_summary}</small>
-                </div>
-            </div>
-
-            <!-- Case Info -->
-            <dl class="info-strip">
-                <div><dt>Case ID</dt><dd class="mono">{case_id}</dd></div>
-                <div><dt>Timestamp (UTC)</dt><dd class="mono">{timestamp}</dd></div>
-                <div><dt>Media</dt><dd><strong>{summary.get('filename') or 'Uploaded Media'}</strong> — {media_specs}</dd></div>
-                <div><dt>Review</dt><dd>{'MANDATORY — Human Review Required' if risk.get('requires_human_review') else 'OPTIONAL — Confidence Met'}</dd></div>
-                <div class="span2"><dt>SHA-256 Hash</dt><dd class="mono" style="font-size:.68rem;">{sha256_hash}</dd></div>
-            </dl>
-
-            <!-- Narrative -->
-            <div class="sec-title"><span>Narrative</span><span class="tag">CONTEXT</span></div>
-            <div style="background:#fff;border:1px solid #DCD5C6;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:#3A3632;font-style:italic;line-height:1.5;">
-                "{risk.get('narrative', 'No elevated risk factors detected in available content and context.')}"
-            </div>
-
-            <!-- Evidence -->
-            <div class="sec-title"><span>Evidence</span><span class="tag">ANALYSIS</span></div>
-            <div class="cards">
-                <div class="card">
-                    <h4>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                        Visual
-                    </h4>
-                    <div class="finding">{vis_band}</div>
-                    <div class="detail">Signal: <strong>{vis_sig}</strong> · ELA + FFT analysis</div>
-                </div>
-                <div class="card">
-                    <h4>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                        Audio
-                    </h4>
-                    <div class="finding">{aud_band}</div>
-                    <div class="detail">Signal: <strong>{aud_sig}</strong> · Mel-spectrogram + phase check</div>
+                <div class="stamp">● FORENSIC CASE RECORD</div>
+                <h1>Forensic Risk Certificate</h1>
+                <div class="meta-strip">
+                    <span>CASE ID: <strong>{case_id}</strong></span>
+                    <span>•</span>
+                    <span>TIMESTAMP: <strong>{timestamp[:19]} UTC</strong></span>
+                    <span>•</span>
+                    <span>MEDIA: <strong>{summary.get('filename') or 'Uploaded Asset'}</strong></span>
                 </div>
             </div>
 
-            <!-- Disagreement -->
-            <div class="sec-title"><span>Cross-Modal Check</span><span class="tag">SYNC</span></div>
-            <div class="disag">
-                <div class="disag-row">
-                    <span class="disag-title">
-                        {'⚠️ Contradiction Detected' if disag_flag else '✓ Modalities Synchronized'}
+            <!-- Dominant Hero: Large Color-Coded Risk Band Badge -->
+            <div class="risk-hero">
+                <div class="risk-badge">
+                    <span class="level-text">{level} RISK</span>
+                    <span class="score-pill">{ov_score_val:.2f} / 1.00</span>
+                </div>
+                <p class="one-line-summary">"{short_summary}"</p>
+            </div>
+
+            <!-- Compact Evidence Snapshot Badges -->
+            <div class="evidence-row">
+                <!-- Visual Modality Badge -->
+                <div class="badge-card">
+                    <div class="left">
+                        <div class="icon">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </div>
+                        <div>
+                            <div class="title">Visual Modality</div>
+                            <div class="verdict-chip">{vis_band}</div>
+                        </div>
+                    </div>
+                    <span class="status-pill {'danger' if 'tamper' in vis_band.lower() or 'anomal' in vis_band.lower() else 'success'}">
+                        {vis_sig}
                     </span>
-                    <span class="pill">{div_score_val:.2f} / 0.35</span>
                 </div>
-                <p>{disagreement.get('narrative') or 'Visual and audio evidence are consistent with each other.'}</p>
+
+                <!-- Audio Modality Badge -->
+                <div class="badge-card">
+                    <div class="left">
+                        <div class="icon">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                        </div>
+                        <div>
+                            <div class="title">Audio Modality</div>
+                            <div class="verdict-chip">{aud_band}</div>
+                        </div>
+                    </div>
+                    <span class="status-pill {'danger' if 'clone' in aud_band.lower() or 'synthet' in aud_band.lower() else 'success'}">
+                        {aud_sig}
+                    </span>
+                </div>
             </div>
 
-            <!-- Sign-off -->
+            <!-- Cross-Modal Disagreement Flag -->
+            <div class="disag-banner {'flagged' if disag_flag else 'clean'}">
+                <div class="disag-left">
+                    <span>{'⚠️' if disag_flag else '✓'}</span>
+                    <span>
+                        {'CROSS-MODAL CONTRADICTION TRIGGERED — Visual & Audio modalities conflict' if disag_flag else 'MODALITIES SYNCHRONIZED — No cross-modal contradiction detected'}
+                    </span>
+                </div>
+                <span class="disag-metric">DIV: {div_score_val:.2f} / 0.35</span>
+            </div>
+
+            <!-- Collapsible Full Technical Detail Section -->
+            <details class="tech-details">
+                <summary>
+                    <span>🔬 Full Technical Detail & Forensic Metrics</span>
+                    <span style="font-size:.7rem;color:var(--muted);">Click to expand / collapse</span>
+                </summary>
+                <div class="tech-content">
+                    <div class="tech-item">
+                        <dt>Overall Risk Score</dt>
+                        <dd>{ov_score_val:.4f}</dd>
+                    </div>
+                    <div class="tech-item">
+                        <dt>Divergence Score</dt>
+                        <dd>{div_score_val:.4f} (Threshold: 0.35)</dd>
+                    </div>
+                    <div class="tech-item">
+                        <dt>Visual Score & Metric</dt>
+                        <dd>{vis_ev.get('band_score', 'N/A')} (Signal: {vis_sig})</dd>
+                    </div>
+                    <div class="tech-item">
+                        <dt>Audio Score & Metric</dt>
+                        <dd>{aud_ev.get('band_score', 'N/A')} (Signal: {aud_sig})</dd>
+                    </div>
+                    <div class="tech-item tech-full">
+                        <dt>Media Specifications</dt>
+                        <dd>{media_specs}</dd>
+                    </div>
+                    <div class="tech-item tech-full">
+                        <dt>Adjudication Review Requirement</dt>
+                        <dd>{'Mandatory Human Review Flagged' if risk.get('requires_human_review') else 'Confidence Baseline Satisfied'}</dd>
+                    </div>
+                    <div class="tech-item tech-full">
+                        <dt>Full Narrative Context</dt>
+                        <dd style="font-family:sans-serif;font-size:.72rem;line-height:1.4;">{risk.get('narrative', 'N/A')}</dd>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Bottom Provenance & Signatures -->
             <div class="footer">
-                <div class="sig">
-                    <div class="sig-lbl">Forensic Investigator</div>
-                    <div class="sig-name">{analyst_name}</div>
-                    <div class="sig-line"></div>
-                    <div class="sig-sub">Lead Adjudication Officer · TrustGuard</div>
+                <div class="sig-col">
+                    <div class="lbl">Forensic Investigator</div>
+                    <div class="name">{analyst_name}</div>
+                    <div class="line"></div>
+                    <div class="sub">Adjudication Officer · TrustGuard System</div>
                 </div>
+
                 <div class="seal">
-                    <div class="seal-top">TRUSTGUARD</div>
-                    <div class="seal-icon">✦</div>
-                    <div class="seal-mid">VERIFIED</div>
-                    <div class="seal-bot">ISO 27037</div>
+                    <div class="seal-t">TRUSTGUARD</div>
+                    <div class="seal-m">HASHED</div>
+                    <div class="seal-b">SHA-256</div>
                 </div>
-                <div class="sig" style="text-align:right;">
-                    <div class="sig-lbl">Certified On</div>
-                    <div class="sig-name" style="font-size:.78rem;font-family:'JetBrains Mono',monospace;">{decision_date[:19]}</div>
-                    <div class="sig-line"></div>
-                    <div class="sig-sub">Cryptographic Ledger Entry</div>
+
+                <div class="sig-col" style="text-align:right;">
+                    <div class="lbl">Attestation Date</div>
+                    <div class="name" style="font-family:'JetBrains Mono',monospace;font-size:.75rem;">{decision_date[:19]}</div>
+                    <div class="line"></div>
+                    <div class="sub">Cryptographic Ledger Attested</div>
                 </div>
             </div>
 
-            <div class="legal">
-                Certificate pursuant to FRE 902(13) & 902(14) — self-authenticating electronic record. Hash verified at ingestion.
+            <!-- SHA-256 Hash Ingestion String in Small Print -->
+            <div class="hash-strip">
+                SHA-256 INGESTION HASH: <strong>{sha256_hash}</strong>
+                <div style="font-size:.56rem;color:#8D7B68;margin-top:2px;">
+                    Cryptographically Hashed for Integrity (SHA-256) — Ingestion hash computed at upload time.
+                </div>
             </div>
         </div>
     </div>

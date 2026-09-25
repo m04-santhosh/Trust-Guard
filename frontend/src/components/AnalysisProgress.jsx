@@ -59,7 +59,7 @@ const PIPELINE_STAGES = [
     icon: Shield,
     activeText: 'Anchoring cryptographic hashes and generating tamper-evident Risk Certificate...',
     completeText: 'Case Dossier & Official Forensic Risk Certificate generated.',
-    metric: 'FRE-902 / ISO 27037 Ready',
+    metric: 'SHA-256 Verified',
   },
 ];
 
@@ -239,7 +239,7 @@ export default function AnalysisProgress({ progress = 0 }) {
               Protocol Status
             </div>
             <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-success)', marginTop: '2px' }}>
-              FRE-902 Lock
+              SHA-256 Lock
             </div>
           </div>
         </div>

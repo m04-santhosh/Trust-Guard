@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -8,7 +8,7 @@ import HistoryPage from './pages/HistoryPage';
 import MyReportsPage from './pages/MyReportsPage';
 import AuthPage from './pages/AuthPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Shield } from 'lucide-react';
 
 /**
  * Smooth page transition animation variants.
@@ -20,34 +20,93 @@ const pageVariants = {
   exit: { opacity: 0, y: -8, transition: { duration: 0.15 } },
 };
 
+const getTabFromPath = (pathname) => {
+  const p = (pathname || window.location.pathname || '').toLowerCase();
+  if (p === '/history' || p === '/archives') return 'history';
+  if (p === '/my_reports' || p === '/my-reports' || p === '/reports') return 'my_reports';
+  if (p === '/analysis') return 'analysis';
+  if (p === '/login' || p === '/auth' || p === '/signup') return 'auth';
+  return 'upload'; // default dashboard route ('/' or '/dashboard')
+};
+
 function AppContent() {
   const { isAuthenticated, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('upload');
+  const [activeTab, setActiveTab] = useState(() => getTabFromPath(window.location.pathname));
   const [previousTab, setPreviousTab] = useState('upload');
   const [currentCaseFile, setCurrentCaseFile] = useState(null);
+
+  // Sync browser URL whenever activeTab changes for authenticated users
+  const navigateToTab = (tab, replace = false) => {
+    setActiveTab(tab);
+    let targetPath = '/dashboard';
+    if (tab === 'history') targetPath = '/history';
+    else if (tab === 'my_reports') targetPath = '/my-reports';
+    else if (tab === 'analysis') targetPath = '/analysis';
+    else if (tab === 'auth') targetPath = '/login';
+
+    if (window.location.pathname !== targetPath) {
+      if (replace) {
+        window.history.replaceState({ tab }, '', targetPath);
+      } else {
+        window.history.pushState({ tab }, '', targetPath);
+      }
+    }
+  };
+
+  // Listen to browser Back/Forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const tab = getTabFromPath(window.location.pathname);
+      setActiveTab(tab);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // AUTH GUARD: Enforce authentication on root ('/'), '/dashboard', and all protected routes
+  useEffect(() => {
+    if (loading) return;
+
+    if (!isAuthenticated) {
+      // If unauthenticated, redirect any protected route or root to /login
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+        window.history.replaceState({ tab: 'auth' }, '', '/login');
+      }
+      setActiveTab('auth');
+    } else {
+      // If already authenticated and visiting /login or /auth, redirect to /dashboard
+      const p = window.location.pathname.toLowerCase();
+      if (p === '/login' || p === '/auth' || p === '/signup') {
+        window.history.replaceState({ tab: 'upload' }, '', '/dashboard');
+        setActiveTab('upload');
+      } else if (p === '/' || p === '') {
+        window.history.replaceState({ tab: 'upload' }, '', '/dashboard');
+      }
+    }
+  }, [isAuthenticated, loading]);
 
   const handleAnalysisComplete = (caseFile) => {
     setPreviousTab('upload');
     setCurrentCaseFile(caseFile);
-    setActiveTab('analysis');
+    navigateToTab('analysis');
   };
 
   const handleSelectCase = (caseFile) => {
     setPreviousTab(activeTab);
     setCurrentCaseFile(caseFile);
-    setActiveTab('analysis');
+    navigateToTab('analysis');
   };
 
   const handleBack = () => {
-    setActiveTab(previousTab || 'my_reports');
+    navigateToTab(previousTab || 'my_reports');
   };
 
   const handleNewAnalysis = () => {
     setCurrentCaseFile(null);
-    setActiveTab('upload');
+    navigateToTab('upload');
   };
 
-  // If validating session token from localStorage
+  // If validating session token from storage on startup
   if (loading) {
     return (
       <div
@@ -69,6 +128,100 @@ function AppContent() {
     );
   }
 
+  // ── STRICT AUTH GUARD ──
+  // If not authenticated, render ONLY the Login / Signup screen.
+  // Dashboard and evidence pipelines are completely blocked until successful login.
+  if (!isAuthenticated) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
+        {/* Minimal branding header for the auth portal */}
+        <header
+          style={{
+            borderBottom: '1px solid var(--border-medium)',
+            background: 'rgba(245, 241, 233, 0.96)',
+            padding: '16px var(--space-xl)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'var(--accent-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Shield size={18} color="#ffffff" />
+            </div>
+            <span
+              style={{
+                fontSize: '1.45rem',
+                fontWeight: 800,
+                letterSpacing: '-0.025em',
+                background: 'linear-gradient(135deg, var(--text-primary) 60%, var(--accent-primary) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              TrustGuard
+            </span>
+            <span
+              style={{
+                marginLeft: '8px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--accent-primary)',
+                background: 'rgba(238, 105, 46, 0.12)',
+                padding: '3px 8px',
+                borderRadius: '4px',
+              }}
+            >
+              Forensic Gateway
+            </span>
+          </div>
+        </header>
+
+        {/* Auth Guard Portal View */}
+        <main
+          style={{
+            flex: 1,
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 'var(--space-2xl) var(--space-md)',
+          }}
+        >
+          <motion.div
+            key="auth-guard-view"
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
+          >
+            <AuthPage
+              initialMode={window.location.pathname === '/signup' ? 'signup' : 'login'}
+              onSuccess={() => {
+                navigateToTab('upload', true);
+              }}
+              // No onBack callback passed: cannot bypass auth to access dashboard
+            />
+          </motion.div>
+        </main>
+      </div>
+    );
+  }
+
+  // ── AUTHENTICATED USER WORKSPACE ──
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
       {/* Top Navigation with tabs, sign-in button or user profile menu */}
@@ -77,7 +230,7 @@ function AppContent() {
         onTabChange={(tab) => {
           setPreviousTab(activeTab);
           if (tab === 'upload') handleNewAnalysis();
-          else setActiveTab(tab);
+          else navigateToTab(tab);
         }}
       />
 
@@ -88,7 +241,7 @@ function AppContent() {
             <motion.div key="upload" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ width: '100%' }}>
               <UploadPage
                 onAnalysisComplete={handleAnalysisComplete}
-                onSignInClick={() => setActiveTab('auth')}
+                onSignInClick={() => navigateToTab('auth')}
               />
             </motion.div>
           )}
@@ -104,20 +257,11 @@ function AppContent() {
 
           {activeTab === 'my_reports' && (
             <motion.div key="my_reports" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ width: '100%' }}>
-              {isAuthenticated ? (
-                <MyReportsPage
-                  onSelectCase={handleSelectCase}
-                  onNewAnalysis={handleNewAnalysis}
-                  onBack={() => setActiveTab('upload')}
-                />
-              ) : (
-                <div style={{ padding: 'var(--space-2xl) var(--space-md)', width: '100%', display: 'flex', justifyContent: 'center' }}>
-                  <AuthPage
-                    onSuccess={() => setActiveTab('my_reports')}
-                    onBack={() => setActiveTab('upload')}
-                  />
-                </div>
-              )}
+              <MyReportsPage
+                onSelectCase={handleSelectCase}
+                onNewAnalysis={handleNewAnalysis}
+                onBack={() => navigateToTab('upload')}
+              />
             </motion.div>
           )}
 
@@ -126,16 +270,7 @@ function AppContent() {
               <HistoryPage
                 onSelectCase={handleSelectCase}
                 onNewAnalysis={handleNewAnalysis}
-                onBack={() => setActiveTab('upload')}
-              />
-            </motion.div>
-          )}
-
-          {activeTab === 'auth' && (
-            <motion.div key="auth" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ width: '100%', display: 'flex', justifyContent: 'center', padding: 'var(--space-2xl) var(--space-md)' }}>
-              <AuthPage
-                onSuccess={() => setActiveTab('upload')}
-                onBack={() => setActiveTab('upload')}
+                onBack={() => navigateToTab('upload')}
               />
             </motion.div>
           )}

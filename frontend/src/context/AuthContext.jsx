@@ -4,7 +4,6 @@ import { API_BASE } from '../utils/config';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
   // Support persistent analyst credentials with isolated per-user sessions
   const [token, setToken] = useState(() => {
     try {
@@ -13,7 +12,26 @@ export function AuthProvider({ children }) {
       return null;
     }
   });
-  const [loading, setLoading] = useState(false);
+
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('tg_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [loading, setLoading] = useState(() => {
+    try {
+      const savedToken = localStorage.getItem('tg_token') || sessionStorage.getItem('tg_session_token');
+      const savedUser = localStorage.getItem('tg_user');
+      // If we have a token but no user, we must validate before rendering
+      return !!(savedToken && !savedUser);
+    } catch {
+      return false;
+    }
+  });
 
   // Validate token if active in current browser session
   useEffect(() => {
@@ -22,7 +40,7 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    setLoading(true);
+    // If we already have cached user, we can validate silently in background
     fetch(`${API_BASE}/auth/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -34,10 +52,15 @@ export function AuthProvider({ children }) {
       })
       .then((userData) => {
         setUser(userData);
+        try {
+          localStorage.setItem('tg_user', JSON.stringify(userData));
+        } catch {}
       })
       .catch(() => {
         // Token expired or invalid
         sessionStorage.removeItem('tg_session_token');
+        localStorage.removeItem('tg_token');
+        localStorage.removeItem('tg_user');
         setToken(null);
         setUser(null);
       })
@@ -67,6 +90,9 @@ export function AuthProvider({ children }) {
     const data = await res.json();
     localStorage.setItem('tg_token', data.token);
     sessionStorage.setItem('tg_session_token', data.token);
+    if (data.user) {
+      localStorage.setItem('tg_user', JSON.stringify(data.user));
+    }
     setToken(data.token);
     setUser(data.user);
     return data.user;
@@ -76,6 +102,7 @@ export function AuthProvider({ children }) {
     // Clear previous sessions so new user gets an entirely fresh, isolated account
     sessionStorage.removeItem('tg_session_token');
     localStorage.removeItem('tg_token');
+    localStorage.removeItem('tg_user');
 
     const res = await fetch(`${API_BASE}/auth/signup`, {
       method: 'POST',
@@ -96,6 +123,9 @@ export function AuthProvider({ children }) {
     if (data.token) {
       localStorage.setItem('tg_token', data.token);
       sessionStorage.setItem('tg_session_token', data.token);
+      if (data.user) {
+        localStorage.setItem('tg_user', JSON.stringify(data.user));
+      }
       setToken(data.token);
       setUser(data.user);
     }
@@ -111,6 +141,7 @@ export function AuthProvider({ children }) {
     }
     sessionStorage.removeItem('tg_session_token');
     localStorage.removeItem('tg_token');
+    localStorage.removeItem('tg_user');
     setToken(null);
     setUser(null);
   };
