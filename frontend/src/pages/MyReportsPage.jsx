@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { listMyCases, deleteCase } from '../utils/api';
 
-const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+import { API_BASE } from '../utils/config';
 import { useAuth } from '../context/AuthContext';
 
 export default function MyReportsPage({ onSelectCase, onNewAnalysis, onOpenAuth, onBack }) {

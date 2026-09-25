@@ -49,7 +49,7 @@ const RISK_CONFIG = {
   },
 };
 
-const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+import { API_BASE } from '../utils/config';
 
 export default function RiskCertificate({ risk, confidenceSummary, caseId }) {
   if (!risk) return null;

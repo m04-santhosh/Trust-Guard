@@ -6,6 +6,7 @@ import RiskCertificate from '../components/RiskCertificate';
 import EvidenceDashboard from '../components/EvidenceDashboard';
 import HumanReviewPanel from '../components/HumanReviewPanel';
 import CaseFileExport from '../components/CaseFileExport';
+import { API_BASE } from '../utils/config';
 
 export default function AnalysisPage({ caseFile: initialCaseFile, onBack }) {
   const [caseFile, setCaseFile] = useState(initialCaseFile);
@@ -43,7 +44,7 @@ export default function AnalysisPage({ caseFile: initialCaseFile, onBack }) {
     return Image;
   };
 
-  const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+
   const MediaIcon = getMediaIcon(media_summary?.type);
   const mediaStreamUrl = media_summary?.media_id
     ? `${API_BASE}/media/${encodeURIComponent(media_summary.media_id)}/file`

@@ -2,10 +2,8 @@
  * API utility — fetch wrapper for TrustGuard backend.
  */
 
-const API_BASE = import.meta.env?.VITE_API_URL ||
-  (typeof window !== 'undefined' && window.location.hostname
-    ? `http://${window.location.hostname}:8000`
-    : 'http://127.0.0.1:8000');
+import { API_BASE } from './config';
+
 
 /**
  * Upload a media file for analysis.

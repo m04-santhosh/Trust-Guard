@@ -10,6 +10,7 @@ import {
   Check,
   ExternalLink,
 } from 'lucide-react';
+import { API_BASE } from '../utils/config';
 
 export default function CertificateDownloadDropdown({ caseId, caseFile, variant = 'primary' }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,9 +35,9 @@ export default function CertificateDownloadDropdown({ caseId, caseFile, variant 
     setDownloadingFormat(format);
     try {
       if (format === 'pdf_print') {
-        window.open(`http://localhost:8000/export/${encodeURIComponent(id)}?format=html`, '_blank');
+        window.open(`${API_BASE}/export/${encodeURIComponent(id)}?format=html`, '_blank');
       } else if (format === 'html') {
-        const res = await fetch(`http://localhost:8000/export/${encodeURIComponent(id)}?format=html`);
+        const res = await fetch(`${API_BASE}/export/${encodeURIComponent(id)}?format=html`);
         const html = await res.text();
         const blob = new Blob([html], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
@@ -59,10 +60,10 @@ export default function CertificateDownloadDropdown({ caseId, caseFile, variant 
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
         } else {
-          window.location.href = `http://localhost:8000/export/${encodeURIComponent(id)}?format=json`;
+          window.location.href = `${API_BASE}/export/${encodeURIComponent(id)}?format=json`;
         }
       } else if (format === 'csv') {
-        window.location.href = `http://localhost:8000/export/${encodeURIComponent(id)}?format=csv`;
+        window.location.href = `${API_BASE}/export/${encodeURIComponent(id)}?format=csv`;
       }
     } catch (err) {
       console.error('Download failed:', err);

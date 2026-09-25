@@ -3,7 +3,7 @@ import { Download, Printer, Copy, Check, FileJson, FileText, ExternalLink, Award
 import { exportCaseFile } from '../utils/api';
 import CertificateDownloadDropdown from './CertificateDownloadDropdown';
 
-const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+import { API_BASE } from '../utils/config';
 
 export default function CaseFileExport({ caseFile }) {
   const [copied, setCopied] = useState(false);

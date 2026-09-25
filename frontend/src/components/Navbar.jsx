@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import UserSettingsModal from './UserSettingsModal';
+import { API_BASE } from '../utils/config';
 
 export default function Navbar({ activeTab, onTabChange }) {
   const [backendStatus, setBackendStatus] = useState('checking');
@@ -34,8 +35,7 @@ export default function Navbar({ activeTab, onTabChange }) {
   }, []);
 
   useEffect(() => {
-    const apiBase = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
-    fetch(`${apiBase}/health`)
+    fetch(`${API_BASE}/health`)
       .then((res) => {
         if (res.ok) setBackendStatus('online');
         else setBackendStatus('offline');

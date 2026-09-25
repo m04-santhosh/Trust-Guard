@@ -22,7 +22,7 @@ import {
 import { listCases, deleteCase, purgeAllCases } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+import { API_BASE } from '../utils/config';
 
 export default function HistoryPage({ onSelectCase, onNewAnalysis, onBack }) {
   const { token } = useAuth();
