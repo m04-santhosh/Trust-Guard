@@ -19,7 +19,7 @@ import {
   Award,
   ExternalLink,
 } from 'lucide-react';
-import { listCases, deleteCase } from '../utils/api';
+import { listCases, deleteCase, purgeAllCases } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
@@ -35,6 +35,8 @@ export default function HistoryPage({ onSelectCase, onNewAnalysis, onBack }) {
   const [error, setError] = useState(null);
   const [deleteModalCase, setDeleteModalCase] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [purgeModalOpen, setPurgeModalOpen] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
 
   const handleDeleteCase = async () => {
     if (!deleteModalCase) return;
@@ -47,6 +49,19 @@ export default function HistoryPage({ onSelectCase, onNewAnalysis, onBack }) {
       alert(err.message || 'Failed to delete report');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handlePurgeAll = async () => {
+    setIsPurging(true);
+    try {
+      await purgeAllCases(token);
+      setCases([]);
+      setPurgeModalOpen(false);
+    } catch (err) {
+      alert(err.message || 'Failed to purge case archives');
+    } finally {
+      setIsPurging(false);
     }
   };
 
@@ -123,7 +138,7 @@ export default function HistoryPage({ onSelectCase, onNewAnalysis, onBack }) {
   const pendingCount = cases.filter((c) => c.status === 'pending_review' || !c.reviewer_decision?.action).length;
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: 'var(--space-2xl) var(--space-md)' }}>
+    <div style={{ maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', padding: 'var(--space-2xl) var(--space-xl)' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2xl)', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div>
@@ -194,6 +209,40 @@ export default function HistoryPage({ onSelectCase, onNewAnalysis, onBack }) {
             <RefreshCw size={14} className={isRefreshing ? 'spin' : ''} style={{ color: isRefreshing ? 'var(--accent-primary)' : 'var(--text-secondary)' }} />
             <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
+
+          {cases.length > 0 && (
+            <button
+              onClick={() => setPurgeModalOpen(true)}
+              disabled={loading || isRefreshing || isPurging}
+              title="Purge all archive cases and clear workspace"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                padding: '8px 14px',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(238, 105, 46, 0.08)',
+                border: '1px solid rgba(238, 105, 46, 0.3)',
+                color: 'var(--accent-primary)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: (loading || isRefreshing || isPurging) ? 'not-allowed' : 'pointer',
+                minHeight: '42px',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--accent-primary)';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(238, 105, 46, 0.08)';
+                e.currentTarget.style.color = 'var(--accent-primary)';
+              }}
+            >
+              <Trash2 size={14} />
+              <span>Purge All Archive Cases</span>
+            </button>
+          )}
 
           <button
             onClick={onNewAnalysis}
@@ -690,6 +739,113 @@ export default function HistoryPage({ onSelectCase, onNewAnalysis, onBack }) {
                   <>
                     <Trash2 size={14} />
                     <span>Delete Permanently</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Purge All Archives Confirmation Modal */}
+      {purgeModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(30, 27, 24, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 'var(--space-md)',
+          }}
+          onClick={() => !isPurging && setPurgeModalOpen(false)}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-medium)',
+              padding: 'var(--space-xl)',
+              maxWidth: '480px',
+              width: '100%',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: 'rgba(238, 105, 46, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent-primary)',
+                }}
+              >
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Purge All Archive Cases
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Irreversible Global Case Purge ({cases.length} records)
+                </span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '20px' }}>
+              Are you sure you want to permanently delete <strong>all {cases.length} cases</strong> from the Case Dossier Archive? This will clear test benchmarks, evidence records, and past dossiers so your workspace starts completely clean.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                disabled={isPurging}
+                onClick={() => setPurgeModalOpen(false)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-medium)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: isPurging ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={isPurging}
+                onClick={handlePurgeAll}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--accent-primary)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: isPurging ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                {isPurging ? (
+                  <>
+                    <RefreshCw size={14} className="spin" />
+                    <span>Purging Archives...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    <span>Purge All Records</span>
                   </>
                 )}
               </button>

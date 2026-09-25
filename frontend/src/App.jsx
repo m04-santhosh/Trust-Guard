@@ -69,43 +69,9 @@ function AppContent() {
     );
   }
 
-  // ── 1. Unauthenticated Gateway State: Sign In page ALWAYS comes first ──
-  if (!isAuthenticated) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
-        {/* Clean minimal navbar with no workspace links and no right-side buttons */}
-        <Navbar activeTab="auth" onTabChange={() => {}} />
-
-        {/* 2-Column Split Hero Auth Page */}
-        <main
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 'var(--space-2xl) var(--space-md)',
-          }}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <AuthPage
-              onSuccess={() => {
-                setActiveTab('upload');
-              }}
-            />
-          </motion.div>
-        </main>
-      </div>
-    );
-  }
-
-  // ── 2. Authenticated Workspace State (Entered after successful Sign In) ──
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
-      {/* Top Navigation with tabs & user sign-out */}
+      {/* Top Navigation with tabs, sign-in button or user profile menu */}
       <Navbar
         activeTab={activeTab}
         onTabChange={(tab) => {
@@ -116,16 +82,19 @@ function AppContent() {
       />
 
       {/* Main Workspace Content Area with smooth page transitions */}
-      <main style={{ flex: 1 }}>
+      <main style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <AnimatePresence mode="wait">
           {activeTab === 'upload' && (
-            <motion.div key="upload" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <UploadPage onAnalysisComplete={handleAnalysisComplete} />
+            <motion.div key="upload" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ width: '100%' }}>
+              <UploadPage
+                onAnalysisComplete={handleAnalysisComplete}
+                onSignInClick={() => setActiveTab('auth')}
+              />
             </motion.div>
           )}
 
           {activeTab === 'analysis' && (
-            <motion.div key="analysis" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+            <motion.div key="analysis" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ width: '100%' }}>
               <AnalysisPage
                 caseFile={currentCaseFile}
                 onBack={handleBack}
@@ -134,8 +103,27 @@ function AppContent() {
           )}
 
           {activeTab === 'my_reports' && (
-            <motion.div key="my_reports" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <MyReportsPage
+            <motion.div key="my_reports" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ width: '100%' }}>
+              {isAuthenticated ? (
+                <MyReportsPage
+                  onSelectCase={handleSelectCase}
+                  onNewAnalysis={handleNewAnalysis}
+                  onBack={() => setActiveTab('upload')}
+                />
+              ) : (
+                <div style={{ padding: 'var(--space-2xl) var(--space-md)', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <AuthPage
+                    onSuccess={() => setActiveTab('my_reports')}
+                    onBack={() => setActiveTab('upload')}
+                  />
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'history' && (
+            <motion.div key="history" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ width: '100%' }}>
+              <HistoryPage
                 onSelectCase={handleSelectCase}
                 onNewAnalysis={handleNewAnalysis}
                 onBack={() => setActiveTab('upload')}
@@ -143,11 +131,10 @@ function AppContent() {
             </motion.div>
           )}
 
-          {activeTab === 'history' && (
-            <motion.div key="history" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <HistoryPage
-                onSelectCase={handleSelectCase}
-                onNewAnalysis={handleNewAnalysis}
+          {activeTab === 'auth' && (
+            <motion.div key="auth" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ width: '100%', display: 'flex', justifyContent: 'center', padding: 'var(--space-2xl) var(--space-md)' }}>
+              <AuthPage
+                onSuccess={() => setActiveTab('upload')}
                 onBack={() => setActiveTab('upload')}
               />
             </motion.div>

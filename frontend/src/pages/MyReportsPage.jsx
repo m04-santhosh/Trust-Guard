@@ -168,7 +168,7 @@ export default function MyReportsPage({ onSelectCase, onNewAnalysis, onOpenAuth,
   }
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: 'var(--space-2xl) var(--space-md)' }}>
+    <div style={{ maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', padding: 'var(--space-2xl) var(--space-xl)' }}>
       {/* Header */}
       <div
         style={{

@@ -5,6 +5,7 @@ import {
   Sparkles,
   FileText,
   ArrowRight,
+  User,
   AlertTriangle,
   Layers,
   CheckCircle2,
@@ -51,7 +52,7 @@ const PRESET_SCENARIOS = [
   },
 ];
 
-export default function UploadPage({ onAnalysisComplete }) {
+export default function UploadPage({ onAnalysisComplete, onSignInClick }) {
   const { token, user } = useAuth();
   const [file, setFile] = useState(null);
   const [selectedPreset, setSelectedPreset] = useState(null);
@@ -155,7 +156,7 @@ export default function UploadPage({ onAnalysisComplete }) {
   };
 
   return (
-    <div style={{ maxWidth: '980px', margin: '0 auto', padding: 'var(--space-2xl) var(--space-md)' }}>
+    <div style={{ maxWidth: '980px', marginLeft: 'auto', marginRight: 'auto', padding: 'var(--space-2xl) var(--space-xl)' }}>
       {/* Hero Title */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -204,6 +205,42 @@ export default function UploadPage({ onAnalysisComplete }) {
         >
           Existing tools return a single deceptive score. TrustGuard isolates visual and audio modalities, surfaces cross-modal contradictions, evaluates identity risk, and structures an evidence trail for human decision-makers.
         </p>
+
+        {!user && onSignInClick && (
+          <div style={{ marginTop: 'var(--space-lg)', display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={onSignInClick}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 22px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(238, 105, 46, 0.12)',
+                border: '1px solid rgba(238, 105, 46, 0.35)',
+                color: 'var(--accent-primary)',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--accent-primary)';
+                e.currentTarget.style.color = '#ffffff';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(238, 105, 46, 0.12)';
+                e.currentTarget.style.color = 'var(--accent-primary)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <User size={15} />
+              <span>Sign In to Access Saved Personal Case Files</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        )}
       </motion.div>
 
       {/* Main Upload Card */}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Printer, Copy, Check, FileJson, FileText, ExternalLink, Award } from 'lucide-react';
 import { exportCaseFile } from '../utils/api';
+import CertificateDownloadDropdown from './CertificateDownloadDropdown';
 
 const API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
 
@@ -30,11 +31,6 @@ export default function CaseFileExport({ caseFile }) {
       setExporting(false);
     }
   };
-
-  const handleOpenReport = () => {
-    window.open(`${API_BASE}/export/${encodeURIComponent(caseFile.case_id)}?format=html`, '_blank');
-  };
-
   const handleCopyJson = () => {
     navigator.clipboard.writeText(JSON.stringify(caseFile, null, 2));
     setCopied(true);
@@ -47,39 +43,8 @@ export default function CaseFileExport({ caseFile }) {
 
   return (
     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-      {/* Primary Action Button: Official Forensic Risk Certificate */}
-      <button
-        onClick={handleOpenReport}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '7px',
-          padding: '8px 16px',
-          borderRadius: 'var(--radius-md)',
-          background: 'var(--accent-primary)',
-          border: '1px solid var(--accent-primary)',
-          color: '#ffffff',
-          fontSize: '0.85rem',
-          fontWeight: 700,
-          cursor: 'pointer',
-          minHeight: '40px',
-          boxShadow: '0 2px 8px rgba(238, 105, 46, 0.25)',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--accent-primary-hover)';
-          e.currentTarget.style.transform = 'translateY(-1px)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'var(--accent-primary)';
-          e.currentTarget.style.transform = 'translateY(0)';
-        }}
-        title="Open formal defense-ready Forensic Risk Certificate in new tab"
-      >
-        <Award size={16} style={{ color: '#ffffff' }} />
-        <span>Download Risk Certificate</span>
-        <ExternalLink size={13} style={{ color: '#ffffff', opacity: 0.8 }} />
-      </button>
+      {/* Primary Action Button: Multi-Format Forensic Risk Certificate Dropdown */}
+      <CertificateDownloadDropdown caseFile={caseFile} variant="primary" />
 
       {/* Export JSON */}
       <button

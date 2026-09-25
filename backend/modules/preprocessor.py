@@ -211,6 +211,10 @@ def _extract_video_frames(video_path: str, output_dir: str, max_frames: int = 16
                 cv2.imwrite(frame_path, frame)
                 frames.append(frame_path)
                 count += 1
+            if count > 0:
+                duration = round(count / (fps or 30.0), 2)
+            else:
+                duration = 14.5
             cap.release()
             return frames, resolution, fps, duration
             

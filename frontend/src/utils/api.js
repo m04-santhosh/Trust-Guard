@@ -352,3 +352,24 @@ export async function deleteCase(caseId, token = null) {
   return res.json();
 }
 
+/**
+ * Purge all case dossiers and decisions from archive.
+ */
+export async function purgeAllCases(token = null) {
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}/cases/purge`, {
+    method: 'POST',
+    headers,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to purge case archives' }));
+    throw new Error(err.detail || 'Failed to purge case archives');
+  }
+
+  return res.json();
+}

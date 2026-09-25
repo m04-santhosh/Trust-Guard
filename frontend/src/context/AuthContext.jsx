@@ -9,11 +9,10 @@ const API_BASE = import.meta.env?.VITE_API_URL ||
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  // Clear any persistent localStorage token so new launches always land on the Sign In page
+  // Support persistent analyst credentials with isolated per-user sessions
   const [token, setToken] = useState(() => {
     try {
-      localStorage.removeItem('tg_token');
-      return sessionStorage.getItem('tg_session_token');
+      return localStorage.getItem('tg_token') || sessionStorage.getItem('tg_session_token');
     } catch {
       return null;
     }
@@ -52,6 +51,9 @@ export function AuthProvider({ children }) {
   }, [token]);
 
   const login = async (usernameOrEmail, password) => {
+    sessionStorage.removeItem('tg_session_token');
+    localStorage.removeItem('tg_token');
+
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -67,6 +69,7 @@ export function AuthProvider({ children }) {
     }
 
     const data = await res.json();
+    localStorage.setItem('tg_token', data.token);
     sessionStorage.setItem('tg_session_token', data.token);
     setToken(data.token);
     setUser(data.user);
@@ -74,6 +77,10 @@ export function AuthProvider({ children }) {
   };
 
   const signup = async (email, username, password) => {
+    // Clear previous sessions so new user gets an entirely fresh, isolated account
+    sessionStorage.removeItem('tg_session_token');
+    localStorage.removeItem('tg_token');
+
     const res = await fetch(`${API_BASE}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -91,6 +98,7 @@ export function AuthProvider({ children }) {
 
     const data = await res.json();
     if (data.token) {
+      localStorage.setItem('tg_token', data.token);
       sessionStorage.setItem('tg_session_token', data.token);
       setToken(data.token);
       setUser(data.user);

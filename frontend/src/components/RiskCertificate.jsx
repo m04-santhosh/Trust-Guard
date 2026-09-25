@@ -12,6 +12,7 @@ import {
   GitCompare,
   Award,
 } from 'lucide-react';
+import CertificateDownloadDropdown from './CertificateDownloadDropdown';
 
 const RISK_CONFIG = {
   critical: {
@@ -179,36 +180,7 @@ export default function RiskCertificate({ risk, confidenceSummary, caseId }) {
           )}
 
           {caseId && (
-            <button
-              onClick={handleOpenCertificate}
-              title="Open verifiable Forensic Risk Certificate in a new tab"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 14px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-medium)',
-                color: 'var(--text-primary)',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent-primary)';
-                e.currentTarget.style.color = 'var(--text-primary)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-medium)';
-                e.currentTarget.style.color = 'var(--text-primary)';
-              }}
-            >
-              <FileText size={14} style={{ color: 'var(--accent-primary)' }} />
-              <span>View Verified Certificate</span>
-              <ExternalLink size={12} style={{ color: 'var(--text-muted)' }} />
-            </button>
+            <CertificateDownloadDropdown caseId={caseId} variant="secondary" />
           )}
         </div>
       </div>

@@ -10,6 +10,7 @@ import {
   Shield,
   ChevronDown,
   Settings,
+  LogIn,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import UserSettingsModal from './UserSettingsModal';
@@ -66,6 +67,7 @@ export default function Navbar({ activeTab, onTabChange }) {
         padding: '0 var(--space-xl)',
         boxShadow: '0 2px 10px rgba(74, 71, 66, 0.06)',
         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        overflow: 'visible',
       }}
     >
       <div
@@ -80,7 +82,7 @@ export default function Navbar({ activeTab, onTabChange }) {
       >
         {/* Brand: Clean modern typography */}
         <div
-          onClick={() => handleNavClick(isAuthenticated ? 'upload' : 'auth')}
+          onClick={() => handleNavClick('upload')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -221,11 +223,12 @@ export default function Navbar({ activeTab, onTabChange }) {
             <div style={{ height: '26px', width: '1px', background: 'var(--border-medium)' }} />
 
             {/* Right-Side User Profile Menu & Sign Out */}
-            <div ref={menuRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {/* Interactive User Identity Button */}
-              <button
-                id="user-profile-btn"
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Interactive User Identity Button & Dropdown */}
+              <div ref={menuRef} style={{ position: 'relative' }}>
+                <button
+                  id="user-profile-btn"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
                 aria-label="User Profile and Session Information"
                 style={{
                   display: 'flex',
@@ -288,13 +291,14 @@ export default function Navbar({ activeTab, onTabChange }) {
                     top: 'calc(100% + 10px)',
                     right: 0,
                     width: '290px',
+                    maxWidth: 'calc(100vw - 32px)',
                     background: '#FFFFFF',
                     border: '1px solid var(--border-medium)',
                     borderRadius: 'var(--radius-lg)',
                     boxShadow: '0 10px 30px rgba(74, 71, 66, 0.12)',
                     padding: 'var(--space-md)',
                     zIndex: 200,
-                    animation: 'fadeIn 0.15s ease',
+                    animation: 'fadeIn 0.15s ease forwards',
                   }}
                 >
                   {/* Analyst Header */}
@@ -465,52 +469,133 @@ export default function Navbar({ activeTab, onTabChange }) {
                   </button>
                 </div>
               )}
-
-              {/* Dedicated Sign Out Button */}
-              <button
-                onClick={handleSignOut}
-                title="Sign Out of Workspace"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  background: '#FFFFFF',
-                  border: '1px solid var(--border-medium)',
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  minHeight: '40px',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--accent-primary)';
-                  e.currentTarget.style.borderColor = 'var(--accent-primary)';
-                  e.currentTarget.style.color = '#ffffff';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#FFFFFF';
-                  e.currentTarget.style.borderColor = 'var(--border-medium)';
-                  e.currentTarget.style.color = 'var(--text-secondary)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                <LogOut size={15} />
-                <span>Sign Out</span>
-              </button>
             </div>
-          </div>
-        ) : (
-          /* Unauthenticated Header: Clean minimal brand header */
-          null
-        )}
-      </div>
 
-      {/* User Settings & Profile Modal */}
-      <UserSettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
-    </header>
-  );
+            {/* Dedicated Sign Out Button */}
+            <button
+              onClick={handleSignOut}
+              title="Sign Out of Workspace"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: 'var(--radius-md)',
+                background: '#FFFFFF',
+                border: '1px solid var(--border-medium)',
+                color: 'var(--text-secondary)',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                minHeight: '40px',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--accent-primary)';
+                e.currentTarget.style.borderColor = 'var(--accent-primary)';
+                e.currentTarget.style.color = '#ffffff';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#FFFFFF';
+                e.currentTarget.style.borderColor = 'var(--border-medium)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <LogOut size={15} />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Unauthenticated Navigation & Sign In Button */
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <nav style={{ display: 'flex', gap: '8px' }}>
+            {[
+              { id: 'upload', label: 'New Analysis', icon: PlusCircle },
+              { id: 'history', label: 'Case Archives', icon: FolderArchive },
+            ].map((item) => {
+              const isActive = activeTab === item.id;
+              const IconComponent = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '8px 16px',
+                    borderRadius: 'var(--radius-md)',
+                    background: isActive ? 'var(--accent-primary)' : 'transparent',
+                    color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                    border: isActive ? '1px solid var(--accent-primary)' : '1px solid transparent',
+                    fontSize: '0.86rem',
+                    fontWeight: isActive ? 600 : 500,
+                    cursor: 'pointer',
+                    minHeight: '40px',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = 'var(--bg-secondary)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                    }
+                  }}
+                >
+                  <IconComponent size={16} style={{ color: isActive ? '#ffffff' : 'inherit' }} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          <div style={{ height: '24px', width: '1px', background: 'var(--border-medium)' }} />
+
+          <button
+            id="navbar-sign-in-btn"
+            onClick={() => handleNavClick('auth')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '8px 18px',
+              borderRadius: 'var(--radius-md)',
+              background: activeTab === 'auth' ? 'var(--accent-primary-hover)' : 'var(--accent-primary)',
+              border: 'none',
+              color: '#ffffff',
+              fontSize: '0.86rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              minHeight: '40px',
+              boxShadow: '0 2px 8px rgba(238, 105, 46, 0.25)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--accent-primary-hover)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = activeTab === 'auth' ? 'var(--accent-primary-hover)' : 'var(--accent-primary)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <LogIn size={15} />
+            <span>Sign In</span>
+          </button>
+        </div>
+      )}
+    </div>
+
+    {/* User Settings & Profile Modal */}
+    <UserSettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+  </header>
+);
 }

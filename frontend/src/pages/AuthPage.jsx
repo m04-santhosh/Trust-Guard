@@ -19,7 +19,7 @@ import {
   resendSignupOtp,
 } from '../utils/api';
 
-export default function AuthPage({ onSuccess, initialMode = 'login' }) {
+export default function AuthPage({ onSuccess, onBack, initialMode = 'login' }) {
   // 'login' | 'signup' | 'forgot'
   const [authMode, setAuthMode] = useState(initialMode === 'reset' ? 'forgot' : (initialMode || 'login'));
   
@@ -533,6 +533,33 @@ export default function AuthPage({ onSuccess, initialMode = 'login' }) {
         }}
         className="auth-form-panel"
       >
+        {onBack && (
+          <div style={{ marginBottom: '14px' }}>
+            <button
+              type="button"
+              onClick={onBack}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-secondary)',
+                fontSize: '0.84rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: '4px 0',
+                transition: 'color 0.15s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+            >
+              <ArrowLeft size={16} />
+              <span>Back to Forensic Workspace</span>
+            </button>
+          </div>
+        )}
+
         {/* Header titles based on mode */}
         <div style={{ marginBottom: 'var(--space-xl)' }}>
           <h2

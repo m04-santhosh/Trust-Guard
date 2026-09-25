@@ -50,7 +50,7 @@ export default function AnalysisPage({ caseFile: initialCaseFile, onBack }) {
     : null;
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: 'var(--space-xl) var(--space-md)' }}>
+    <div style={{ maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', padding: 'var(--space-xl) var(--space-xl)' }}>
       {/* Top Navigation & Actions Bar */}
       <div
         style={{

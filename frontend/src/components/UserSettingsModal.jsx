@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   User,
   Shield,
@@ -36,6 +37,21 @@ export default function UserSettingsModal({ isOpen, onClose }) {
   const [defaultExportFormat, setDefaultExportFormat] = useState('html');
   const [timezoneFormat, setTimezoneFormat] = useState('local');
   const [prefSaved, setPrefSaved] = useState(false);
+
+  // Close on Escape key & lock body scroll
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -83,7 +99,7 @@ export default function UserSettingsModal({ isOpen, onClose }) {
     setTimeout(() => setPrefSaved(false), 2500);
   };
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -91,13 +107,18 @@ export default function UserSettingsModal({ isOpen, onClose }) {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'rgba(58, 54, 48, 0.45)',
+        width: '100vw',
+        height: '100vh',
+        background: 'rgba(58, 54, 48, 0.55)',
         backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
-        padding: 'var(--space-md)',
+        overflowY: 'auto',
+        zIndex: 99999,
+        padding: '24px 16px',
+        boxSizing: 'border-box',
       }}
       onClick={onClose}
     >
@@ -109,12 +130,14 @@ export default function UserSettingsModal({ isOpen, onClose }) {
           borderRadius: 'var(--radius-xl)',
           maxWidth: '680px',
           width: '100%',
-          maxHeight: '90vh',
+          maxHeight: 'calc(100vh - 48px)',
+          margin: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 20px 50px rgba(74, 71, 66, 0.18)',
+          boxShadow: '0 25px 60px rgba(58, 54, 48, 0.28)',
           overflow: 'hidden',
           animation: 'fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          position: 'relative',
         }}
       >
         {/* Modal Header */}
@@ -123,9 +146,10 @@ export default function UserSettingsModal({ isOpen, onClose }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '20px 24px',
+            padding: '18px 24px',
             borderBottom: '1px solid var(--border-medium)',
             background: 'var(--bg-secondary)',
+            flexShrink: 0,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -590,6 +614,7 @@ export default function UserSettingsModal({ isOpen, onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
