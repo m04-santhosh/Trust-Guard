@@ -8,7 +8,7 @@ Instead of collapsing multi-modal analysis into a single deceptive probability s
 
 ---
 
-## ⚡ Evaluator Quick Start (< 2 Minutes)
+## ⚡ 
 
 Follow these exact numbered steps to run TrustGuard cold:
 
